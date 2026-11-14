@@ -26,7 +26,7 @@
   #menu .panel{padding-top:64px}
   h1.title{display:flex;align-items:flex-end;justify-content:center;gap:.12em;line-height:1}
   h1.title .tt{padding-bottom:.08em}
-  #tGor{width:1.5em;height:1.65em;overflow:visible;flex:none;filter:drop-shadow(2px 2px 0 rgba(242,193,78,.9))}
+  #tGor{position:static;inset:auto;width:2.4em;height:1.75em;margin-left:-0.9em;flex:none;display:block}
   #tPoopSlot{display:inline-block;width:1.05em;height:1.05em;flex:none;margin-bottom:.02em}
   #tPoop{width:100%;height:100%;overflow:visible;transform-origin:50% 90%;will-change:transform}
   #tPoop .pup{transform-box:view-box}
@@ -118,44 +118,7 @@
       <button data-lang="pt">🇧🇷 PT</button><button data-lang="en">🇺🇸 EN</button><button data-lang="de">🇩🇪 DE</button>
     </div>
     <h1 class="title" aria-label="Gorilas">
-      <svg id="tGor" viewBox="0 0 100 110" aria-hidden="true">
-        <g id="gUpper">
-          <g id="gLegsStand" fill="#2e2a2a">
-            <ellipse cx="40" cy="96" rx="10" ry="11"/><ellipse cx="62" cy="96" rx="10" ry="11"/>
-          </g>
-          <g id="gLegsSit" opacity="0">
-            <ellipse cx="56" cy="96" rx="17" ry="8" fill="#2e2a2a"/>
-            <ellipse cx="66" cy="99" rx="17" ry="7.5" fill="#2e2a2a"/>
-            <ellipse cx="82" cy="93" rx="5.5" ry="7" fill="#5d4a3e"/>
-            <ellipse cx="74" cy="91" rx="5" ry="6.5" fill="#5d4a3e"/>
-          </g>
-          <g id="gArmBack" fill="#2e2a2a">
-            <ellipse cx="36" cy="67" rx="8" ry="18"/><circle cx="36" cy="83" r="7.5"/>
-          </g>
-          <ellipse cx="50" cy="66" rx="25" ry="26" fill="#2e2a2a"/>
-          <ellipse cx="57" cy="69" rx="14" ry="16" fill="#5d4a3e"/>
-          <g id="gHead">
-            <circle cx="40" cy="31" r="5" fill="#2e2a2a"/>
-            <circle cx="54" cy="31" r="18" fill="#2e2a2a"/>
-            <ellipse cx="62" cy="37" rx="13" ry="11" fill="#8a7262"/>
-            <rect x="48" y="22" width="27" height="5" rx="2.5" fill="#2e2a2a"/>
-            <ellipse cx="58" cy="29.5" rx="3.8" ry="3.8" fill="#fff"/><ellipse cx="68.5" cy="29.5" rx="3.8" ry="3.8" fill="#fff"/>
-            <ellipse id="gPupL" cx="59.5" cy="30" rx="1.9" ry="2" fill="#111"/><ellipse id="gPupR" cx="70" cy="30" rx="1.9" ry="2" fill="#111"/>
-            <ellipse cx="64.5" cy="36.5" rx="1.4" ry="1.1" fill="#3a2c25"/><ellipse cx="69.5" cy="36.5" rx="1.4" ry="1.1" fill="#3a2c25"/>
-            <path id="gMouthSmile" d="M59 41.5 Q65 46.5 71 41.5" stroke="#3a2c25" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-            <ellipse id="gMouthO" cx="66" cy="43" rx="2.4" ry="2.8" fill="#3a2c25" opacity="0"/>
-            <rect x="36" y="15" width="37" height="6" rx="2" fill="#e5484d"/>
-            <path id="gBand" d="M37 17 L27 13 L29 22 Z" fill="#e5484d"/>
-          </g>
-          <g id="gArmFront" fill="#2e2a2a">
-            <ellipse cx="64" cy="67" rx="8" ry="18"/><circle cx="64" cy="83" r="7.5"/>
-            <circle id="gHand" cx="64" cy="86" r="1" opacity="0"/>
-          </g>
-          <g id="gStink" opacity="0" stroke="#8fbf3a" stroke-width="2.4" fill="none" stroke-linecap="round">
-            <path d="M86 22 q3 -4 0 -8 q-3 -4 0 -8"/><path d="M93 24 q3 -4 0 -8 q-3 -4 0 -8"/><path d="M100 22 q3 -4 0 -8 q-3 -4 0 -8"/>
-          </g>
-        </g>
-      </svg>
+      <canvas id="tGor" aria-hidden="true"></canvas>
       <span class="tt" data-i18n="title">Gorilas</span>
       <span id="tPoopSlot"><svg id="tPoop" viewBox="0 0 100 100" aria-hidden="true">
         <g class="stars"><path id="tStar1" d="M0 -8 L2.4 -2.4 L8 0 L2.4 2.4 L0 8 L-2.4 2.4 L-8 0 L-2.4 -2.4Z" fill="#ffd23f" stroke="#c98a00" stroke-width="1.2"/><path id="tStar2" d="M0 -8 L2.4 -2.4 L8 0 L2.4 2.4 L0 8 L-2.4 2.4 L-8 0 L-2.4 -2.4Z" fill="#ffd23f" stroke="#c98a00" stroke-width="1.2"/></g>
@@ -1603,97 +1566,169 @@ requestAnimationFrame(frame);
 })();
 </script>
 <script>
-// ---------- Animação do título ----------
+// ---------- Animação do título (gorila sentado: atira a bosta, coça, cheira e desmaia) ----------
 (() => {
   const $ = id => document.getElementById(id);
-  const menu = $("menu"), upper = $("gUpper"), legsStand = $("gLegsStand"), legsSit = $("gLegsSit");
-  const armF = $("gArmFront"), armB = $("gArmBack"), head = $("gHead"), hand = $("gHand"), stink = $("gStink");
-  const pupL = $("gPupL"), pupR = $("gPupR"), mSmile = $("gMouthSmile"), mO = $("gMouthO"), band = $("gBand");
-  const poop = $("tPoop"), slot = $("tPoopSlot");
-  const lerp = (a, b, k) => a + (b - a) * k;
-  const cl = k => Math.max(0, Math.min(1, k));
-  const seg = (t, a, b) => cl((t - a) / (b - a));
-  const eio = k => k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-  const ein = k => k * k * k;
-  const eout = k => 1 - Math.pow(1 - k, 3);
-
-  const RELEASE = 930, FLY = 900, LAND = RELEASE + FLY, LOOP0 = 1750, CYCLE = 4400;
-  let t0 = null, from = null, landed = false;
-
-  function center(el) { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
-  function setRot(el, a, cx, cy) { el.setAttribute("transform", `rotate(${a} ${cx} ${cy})`); }
-
-  function pose(t) {
-    // braço da frente: segurar -> armar -> lançar -> baixar -> (ciclo) cheirar
-    let aF = 160, aB = 8, sit = 0, sniff = 0, scratch = 0;
-    if (t < 500) aF = 160 + Math.sin(t / 90) * 4;
-    else if (t < 800) aF = lerp(160, 122, eio(seg(t, 500, 800)));
-    else if (t < 1000) aF = lerp(122, 290, ein(seg(t, 800, 1000)));
-    else aF = lerp(290, 360, eio(seg(t, 1000, 1400)));
-    sit = eio(seg(t, 1350, 1700));
-    if (t >= LOOP0) {
-      const p = (t - LOOP0) % CYCLE;
-      // coçar o rabo
-      const sIn = seg(p, 0, 250), sOut = 1 - seg(p, 2300, 2550);
-      scratch = Math.min(sIn, sOut);
-      aB = lerp(8, 42 + 10 * Math.sin(p * 0.045), scratch);
-      // levar a mão ao nariz
-      const up = eio(seg(p, 2450, 2850)), down = eio(seg(p, 3850, 4200));
-      aF = lerp(360, 242, up * (1 - down));
-      sniff = seg(p, 2800, 2950) * (1 - seg(p, 3750, 3850));
-    }
-    setRot(armF, aF, 64, 50);
-    setRot(armB, aB, 36, 50);
-    upper.setAttribute("transform", `translate(0 ${sit * 9})`);
-    legsStand.setAttribute("opacity", 1 - sit);
-    legsSit.setAttribute("opacity", sit);
-    // cabeça: inclina e "fareja" quando cheira; olha para a bosta depois do lançamento
-    const bob = sniff ? Math.sin(t / 70) * 1.5 : 0;
-    head.setAttribute("transform", `rotate(${sniff * 7 + bob} 56 46)`);
-    stink.setAttribute("opacity", sniff);
-    stink.setAttribute("transform", `translate(0 ${sniff ? -((t / 20) % 4) : 0})`);
-    const squint = 1 - sniff * 0.8;
-    pupL.setAttribute("ry", 2 * squint); pupR.setAttribute("ry", 2 * squint);
-    mSmile.setAttribute("opacity", 1 - sniff); mO.setAttribute("opacity", sniff);
-    band.setAttribute("transform", `rotate(${Math.sin(t / 160) * 8} 37 18)`);
+  const menu = $("menu"), cvT = $("tGor"), mctx = cvT.getContext("2d");
+  // o gorila é desenhado num canvas à parte; a sombra amarela é feita aqui dentro (sem filtro CSS, que deixava um traço)
+  const off = document.createElement("canvas"), cx = off.getContext("2d");
+  const shc = document.createElement("canvas"), sctx2 = shc.getContext("2d");
+  const poopEl = $("tPoop"), slot = $("tPoopSlot");
+  const FUR = "#2e2a2a", FAR = "#1d1a1a", SKIN = "#8a7262", BELLY = "#5d4a3e", PALM = "#4a3a32", BAND = "#e5484d";
+  const cl = (v, a, b) => Math.max(a, Math.min(b, v)), L = (a, b, k) => a + (b - a) * k;
+  const sm = k => { k = cl(k, 0, 1); return k * k * (3 - 2 * k); };
+  const seg = (t, a, b) => cl((t - a) / (b - a), 0, 1);
+  const lp = (p, q, k) => [L(p[0], q[0], k), L(p[1], q[1], k)];
+  function el(cx0, cy0, rx, ry, r) { cx.beginPath(); cx.ellipse(cx0, cy0, Math.max(.1, rx), Math.max(.1, ry), r || 0, 0, 7); cx.fill(); }
+  function rot(p, c, a) { const s = Math.sin(a), o = Math.cos(a), dx = p[0] - c[0], dy = p[1] - c[1]; return [c[0] + dx * o - dy * s, c[1] + dx * s + dy * o]; }
+  function ik(S, T, l1, l2, bend) {
+    const dx = T[0] - S[0], dy = T[1] - S[1], D = Math.hypot(dx, dy) || 1, d = Math.min(D, l1 + l2 - .01);
+    const a = Math.atan2(dy, dx), c = Math.acos(cl((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1));
+    return { e: [S[0] + Math.cos(a + bend * c) * l1, S[1] + Math.sin(a + bend * c) * l1], h: [S[0] + dx / D * d, S[1] + dy / D * d] };
   }
-
-  function poopAt(t) {
-    const s = center(slot);
-    if (t < RELEASE) {
-      const h = center(hand);
-      from = { x: h.x - s.x, y: h.y - s.y - slot.offsetHeight * 0.25 };
-      poop.style.transform = `translate(${from.x}px, ${from.y}px) scale(.55) rotate(${Math.sin(t / 90) * 8}deg)`;
-    } else if (t < LAND) {
-      const u = (t - RELEASE) / FLY;
-      const arc = 95 * 4 * u * (1 - u);
-      const x = lerp(from.x, 0, u), y = lerp(from.y, 0, u) - arc;
-      poop.style.transform = `translate(${x}px, ${y}px) scale(${lerp(.55, 1, u)}) rotate(${-720 * (1 - u)}deg)`;
+  function limb(S, E, H, col, w) { cx.strokeStyle = col; cx.lineCap = "round"; cx.lineJoin = "round"; cx.lineWidth = w; cx.beginPath(); cx.moveTo(S[0], S[1]); cx.lineTo(E[0], E[1]); cx.lineTo(H[0], H[1]); cx.stroke(); }
+  function hand(H, col) { cx.fillStyle = col; el(H[0], H[1], 4.6, 4.2); cx.fillStyle = PALM; el(H[0] + 1.2, H[1] + 1, 2.4, 2); }
+  function head(P, t) {
+    cx.fillStyle = FUR; el(-9, 1, 3.5, 4); el(0, 0, 11.5, 10.8);
+    cx.fillStyle = SKIN; el(5, 3.5, 8, 6.6);
+    cx.fillStyle = FUR; cx.fillRect(-2.5, -6.5, 14, 2.8);
+    const ey = -2, e1 = 2.2, e2 = 8.3;
+    if (P.eyes === "x") {
+      cx.strokeStyle = "#111"; cx.lineWidth = 1.3;
+      for (const ex of [e1, e2]) { cx.beginPath(); cx.moveTo(ex - 2, ey - 2); cx.lineTo(ex + 2, ey + 2); cx.moveTo(ex + 2, ey - 2); cx.lineTo(ex - 2, ey + 2); cx.stroke(); }
     } else {
-      const k = (t - LAND) / 1000;
-      if (!landed) { landed = true; poop.classList.add("dizzy"); }
-      const w = k < 1 ? Math.exp(-k * 6) * Math.cos(k * 28) : 0;
-      poop.style.transform = `scale(${1 + 0.22 * w}, ${1 - 0.28 * w})`;
+      const op = { n: 1, half: .45, squint: .22, look: 1, wide: 1.25 }[P.eyes || "n"] * (P.blink ? 0.12 : 1), pr = P.eyes === "wide" ? 0.6 : 1.3;
+      for (const ex of [e1, e2]) {
+        cx.fillStyle = "#fff"; el(ex, ey, 2.6, 2.8 * op);
+        cx.fillStyle = "#111"; const lx = P.eyes === "look" ? 1.2 : (P.lookX || 0), ly = P.eyes === "look" ? 1 : 0;
+        el(ex + .4 + lx, ey + ly * op, pr, pr * Math.min(1, op * 1.1));
+      }
+      if (op < .6) { cx.fillStyle = FUR; cx.fillRect(e1 - 3, ey - 3.2, e2 - e1 + 6, 2.6 * (1 - op)); }
     }
+    const fl = 1 + (P.flare || 0) * .7; cx.fillStyle = "#3a2c25"; el(6.8, 3.4, 1.1 * fl, .85 * fl); el(9.6, 3.4, 1.1 * fl, .85 * fl);
+    cx.strokeStyle = "#3a2c25"; cx.fillStyle = "#3a2c25"; cx.lineWidth = 1.3; const m = P.mouth || "n";
+    if (m === "o") el(7.5, 7.6, 1.6, 2);
+    else if (m === "tongue") { cx.beginPath(); cx.moveTo(4, 7.5); cx.lineTo(10.5, 7.5); cx.stroke(); cx.fillStyle = "#e07a8a"; el(8.5, 9.6, 1.9, 2.6); }
+    else if (m === "wavy") { cx.beginPath(); cx.moveTo(3.5, 8); cx.quadraticCurveTo(5, 6.6, 6.5, 8); cx.quadraticCurveTo(8, 9.4, 9.5, 8); cx.stroke(); }
+    else { cx.beginPath(); cx.arc(7, 5.6, 2.4, .35, Math.PI - .35); cx.stroke(); }
+    cx.fillStyle = BAND; cx.fillRect(-11, -10, 21, 3.8);
+    cx.beginPath(); cx.moveTo(-11, -8.5); cx.lineTo(-18, -12 + Math.sin(t * 7) * 2); cx.lineTo(-17, -5); cx.fill();
+  }
+  // desenha o gorila; devolve a posição da mão (px do canvas)
+  function gorilla(W, H, t, P) {
+    const K = H / 82, ox = W * 0.66, oy = H - 3;
+    cx.save(); cx.translate(ox, oy); cx.scale(K, K);
+    if (P.lie) { cx.translate(-6, -4); cx.rotate(-P.lie); cx.translate(6, 4); }
+    const hip = [0, -8], tilt = P.tilt || 0, br = Math.sin(t * 2.3) * (P.breath == null ? 1 : P.breath);
+    const shB = rot([-5, -37], hip, tilt), shF = rot([8, -36], hip, tilt), neck = rot([7, -48], hip, tilt), kneeLift = P.kneeLift || 0;
+    const aB = ik(shB, P.handB || [-7, -4], 15, 15, 1); limb(shB, aB.e, aB.h, FAR, 8.5); hand(aB.h, FAR);
+    limb([2, -9], [16, -16 - kneeLift], [22, -3], FAR, 9); cx.fillStyle = FAR; el(25, -2.5, 6, 3.4);
+    cx.save(); cx.translate(hip[0], hip[1]); cx.rotate(tilt); cx.translate(-hip[0], -hip[1]);
+    cx.fillStyle = FUR; el(-1, -6, 13, 7.5); el(1, -26, 15.5 * (1 + br * .02), 19 * (1 + br * .025));
+    cx.fillStyle = BELLY; el(5, -23, 9 * (1 + br * .04), 12.5 * (1 + br * .04));
+    cx.restore();
+    limb([4, -8], [19, -14 - kneeLift], [26, -3], FUR, 9.5); cx.fillStyle = FUR; el(29, -2.5, 6.2, 3.6); cx.fillStyle = PALM; el(32, -3, 2.4, 2.2);
+    const hc = [neck[0] + (P.hx || 0), neck[1] - 8 + (P.hy || 0)];
+    cx.save(); cx.translate(hc[0], hc[1]); cx.rotate((P.hr || 0) + tilt * .5); head(P, t); cx.restore();
+    const aF = ik(shF, P.handF || [24, -15], 16, 16, P.bendF || -1); limb(shF, aF.e, aF.h, FUR, 9); hand(aF.h, FUR);
+    if (P.stink) {
+      cx.strokeStyle = "rgba(120,170,40," + (.85 * P.stink) + ")"; cx.lineWidth = 1.6; cx.lineCap = "round";
+      for (let i = 0; i < 3; i++) { const sx = aF.h[0] - 3 + i * 4, sy = aF.h[1] - 6 - ((t * 14 + i * 5) % 8); cx.beginPath(); cx.moveTo(sx, sy); cx.quadraticCurveTo(sx + 2.5, sy - 3, sx, sy - 6); cx.quadraticCurveTo(sx - 2.5, sy - 9, sx, sy - 12); cx.stroke(); }
+    }
+    if (P.sniff) { cx.strokeStyle = "rgba(130,130,130,.85)"; cx.lineWidth = 1.1; for (let i = 0; i < 2; i++) { cx.beginPath(); cx.arc(hc[0] + 14 + i * 3, hc[1] + 2, 3 + i * 2.5, -.7, .7); cx.stroke(); } }
+    if (P.stars) { cx.fillStyle = "#ffd23f"; for (let i = 0; i < 3; i++) { const a = t * 4 + i * 2.09; el(hc[0] + Math.cos(a) * 14, hc[1] - 12 + Math.sin(a) * 4, 2.2, 2.2); } }
+    cx.restore();
+    let hp = aF.h; if (P.lie) hp = rot(hp, [-6, -4], -P.lie);
+    return [ox + hp[0] * K, oy + hp[1] * K];
+  }
+  const REST = [24, -15], BUTT = [-12, -7], NOSE = [25, -56];
+  const blinkAt = t => (t % 3.3) < .12;
+  // alternativa C: coça a bunda, cheira a mão e desmaia com o fedor
+  function C(l, t) {
+    const P = { blink: blinkAt(t) };
+    const toB = sm(seg(l, .8, 1.4)), scr = l > 1.4 && l < 2.9, toN = sm(seg(l, 3, 3.7));
+    P.tilt = .18 * toB * (1 - toN); P.kneeLift = 6 * toB * (1 - toN);
+    let h = lp(REST, BUTT, toB);
+    if (scr) { h = [BUTT[0] + Math.sin(l * 50) * 2.5, BUTT[1]]; P.eyes = "half"; P.tilt = .18 + Math.sin(l * 50) * .03; }
+    if (toN > 0) { h = lp(BUTT, [NOSE[0] + 5, NOSE[1] + 3], toN); P.eyes = "look"; }
+    if (l > 3.7 && l < 4.6) { const s = Math.max(0, Math.sin((l - 3.7) * 12)); P.hx = s * 2; P.flare = s; P.sniff = s > .5; P.eyes = "look"; P.stink = .7; h = [NOSE[0] + 5, NOSE[1] + 3]; }
+    if (l >= 4.6 && l < 5.3) { P.eyes = "wide"; P.mouth = "o"; P.stink = 1; h = [NOSE[0] + 5, NOSE[1] + 3]; P.hr = Math.sin((l - 4.6) * 20) * .1; P.tilt = Math.sin((l - 4.6) * 14) * .08; }
+    if (l >= 5.3 && l < 8.3) {
+      const f = sm(seg(l, 5.3, 5.75)), bounce = l < 5.95 ? Math.sin(seg(l, 5.75, 5.95) * Math.PI) * .08 : 0;
+      P.lie = 1.35 * f - bounce; P.eyes = "x"; P.mouth = "tongue"; P.stars = l > 5.75; P.breath = .3;
+      P.handF = lp([NOSE[0] + 5, NOSE[1] + 3], [30, -30], f); P.kneeLift = 10 * f; P.handB = lp([-7, -4], [-20, -24], f); P.bendF = -1;
+      return P;
+    }
+    if (l >= 8.3) {
+      const u = sm(seg(l, 8.3, 9.1));
+      P.lie = 1.35 * (1 - u); P.eyes = u < .6 ? "half" : "n"; P.mouth = u < .6 ? "wavy" : "n"; P.kneeLift = 10 * (1 - u);
+      P.handF = lp([30, -30], REST, u); P.handB = lp([-20, -24], [-7, -4], u); P.hr = Math.sin(l * 8) * .08 * (1 - u);
+      return P;
+    }
+    P.handF = h; P.bendF = (toB > .5 && toN < .5) ? 1 : -1;
+    return P;
+  }
+  // abertura: segura a bosta no alto, arma e atira
+  const UP = [-2, -76], WIND = [-16, -66], FWD = [36, -50];
+  function intro(ms, t) {
+    const P = { blink: blinkAt(t), eyes: "n" };
+    if (ms < 500) P.handF = [UP[0] + Math.sin(ms / 90) * 1.5, UP[1]];
+    else if (ms < 800) P.handF = lp(UP, WIND, sm(seg(ms, 500, 800)));
+    else if (ms < 1000) { const k = seg(ms, 800, 1000); P.handF = lp(WIND, FWD, k * k * k); P.mouth = "o"; }
+    else P.handF = lp(FWD, REST, sm(seg(ms, 1000, 1500)));
+    P.bendF = ms < 1000 ? -1 : -1;
+    return P;
   }
 
+  const RELEASE = 930, FLY = 900, LAND = RELEASE + FLY, LOOP0 = 1750, CYCLE = 10;
+  let t0 = null, from = null, landed = false;
+  function center(e) { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+  function fit() {
+    const d = Math.min(2, window.devicePixelRatio || 1), w = cvT.clientWidth, h = cvT.clientHeight;
+    const pw = Math.round(w * d), ph = Math.round(h * d);
+    for (const c of [cvT, off, shc]) if (c.width !== pw || c.height !== ph) { c.width = pw; c.height = ph; }
+    cx.setTransform(1, 0, 0, 1, 0, 0); cx.clearRect(0, 0, pw, ph);
+    cx.setTransform(d, 0, 0, d, 0, 0);
+    return [w, h, d, pw, ph];
+  }
+  function poopAt(ms, handPx) {
+    const s = center(slot);
+    if (ms < RELEASE) {
+      const r = cvT.getBoundingClientRect();
+      from = { x: r.left + handPx[0] - s.x, y: r.top + handPx[1] - s.y - slot.offsetHeight * 0.3 };
+      poopEl.style.transform = `translate(${from.x}px, ${from.y}px) scale(.55) rotate(${Math.sin(ms / 90) * 8}deg)`;
+    } else if (ms < LAND) {
+      const u = (ms - RELEASE) / FLY, arc = 95 * 4 * u * (1 - u);
+      poopEl.style.transform = `translate(${L(from.x, 0, u)}px, ${L(from.y, 0, u) - arc}px) scale(${L(.55, 1, u)}) rotate(${-720 * (1 - u)}deg)`;
+    } else {
+      const k = (ms - LAND) / 1000;
+      if (!landed) { landed = true; poopEl.classList.add("dizzy"); }
+      const w = k < 1 ? Math.exp(-k * 6) * Math.cos(k * 28) : 0;
+      poopEl.style.transform = `scale(${1 + 0.22 * w}, ${1 - 0.28 * w})`;
+    }
+  }
   const st1 = $("tStar1"), st2 = $("tStar2");
   function stars(t) {
-    [st1, st2].forEach((el, i) => {
-      const a = t / 260 + i * Math.PI;
-      const x = 50 + Math.cos(a) * 34, y = 4 + Math.sin(a) * 7;
-      const sc = 0.75 + 0.3 * Math.sin(a);
-      el.setAttribute("transform", `translate(${x} ${y}) scale(${sc}) rotate(${t / 6})`);
-      el.setAttribute("opacity", 0.55 + 0.45 * Math.sin(a));
+    [st1, st2].forEach((e, i) => {
+      const a = t / 260 + i * Math.PI, x = 50 + Math.cos(a) * 34, y = 4 + Math.sin(a) * 7, sc = 0.75 + 0.3 * Math.sin(a);
+      e.setAttribute("transform", `translate(${x} ${y}) scale(${sc}) rotate(${t / 6})`);
+      e.setAttribute("opacity", 0.55 + 0.45 * Math.sin(a));
     });
   }
   function frame(now) {
     if (!menu.classList.contains("hidden")) {
       if (t0 === null) t0 = now;
-      const t = now - t0;
-      pose(t);
-      if (!landed || t < LAND + 1100) poopAt(t);
-      if (landed) stars(t);
+      const ms = now - t0, t = ms / 1000;
+      const [w, h, d, pw, ph] = fit();
+      const P = ms < LOOP0 ? intro(ms, t) : C(((ms - LOOP0) / 1000) % CYCLE, t);
+      const hp = gorilla(w, h, t, P);
+      // sombra amarela + gorila
+      sctx2.globalCompositeOperation = "source-over"; sctx2.clearRect(0, 0, pw, ph); sctx2.drawImage(off, 0, 0);
+      sctx2.globalCompositeOperation = "source-in"; sctx2.fillStyle = "rgba(242,193,78,.9)"; sctx2.fillRect(0, 0, pw, ph);
+      mctx.setTransform(1, 0, 0, 1, 0, 0); mctx.clearRect(0, 0, pw, ph);
+      mctx.drawImage(shc, Math.round(2 * d), Math.round(2 * d)); mctx.drawImage(off, 0, 0);
+      if (!landed || ms < LAND + 1100) poopAt(ms, hp);
+      if (landed) stars(ms);
     }
     requestAnimationFrame(frame);
   }
