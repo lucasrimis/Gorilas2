@@ -44,13 +44,41 @@
   #touch{position:fixed;left:0;right:0;bottom:0;z-index:4;display:flex;justify-content:space-between;align-items:flex-end;padding:10px;pointer-events:none}
   #touch .grp{display:flex;gap:8px;pointer-events:auto}
   #touch button{width:56px;height:56px;font-size:22px;padding:0;opacity:.85;touch-action:none}
-  #touch #tFire{width:84px;height:84px;font-size:34px;background:#f2a84e;border-radius:50%}
+  #touch button{width:60px;height:60px}
+  #zoom{position:fixed;top:10px;right:10px;z-index:5;padding:4px 10px;font-size:18px;display:none}
+  body.touch #zoom{display:block;top:56px}
+  body.touch .kbHelp{display:none}
+  .touchHelp{display:none}
+  body.touch .touchHelp{display:block}
+  @media (max-height:520px){
+    .panel{padding:12px 18px}
+    #menu .panel{padding-top:46px}
+    h1{font-size:34px}
+    .sub{margin:0 0 6px;font-size:13px}
+    .label{font-size:11px;margin-top:2px}
+    .row{margin:4px 0 6px}
+    button{font-size:14px;padding:6px 10px}
+    .big{font-size:22px;padding:6px 26px}
+    .help{margin-top:6px;font-size:12px;line-height:1.4}
+    #over h1{font-size:30px}
+  }
+  @media (max-height:430px){
+    .sub,.help{display:none!important}
+    #menu .panel{padding-top:40px}
+    h1{font-size:30px}
+  }
+  @media (max-width:420px){
+    .panel{padding:16px 14px}
+    #menu .panel{padding-top:54px}
+    button{font-size:14px;padding:7px 10px}
+  }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <canvas id="splat" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:20"></canvas>
 <button id="mute" title="Som (M)">🔊</button>
+<button id="zoom" title="Zoom">🔍</button>
 <button id="quit" class="hidden" title="Sair (Esc)">✕ Sair</button>
 <div id="quitDlg" class="overlay hidden">
   <div class="panel" style="max-width:380px">
@@ -71,9 +99,6 @@
   </div>
   <div class="grp">
     <button data-k="weapon">🔄</button>
-    <button data-k="up">▲</button>
-    <button data-k="down">▼</button>
-    <button id="tFire" data-k="fire">💩</button>
   </div>
 </div>
 
@@ -152,9 +177,15 @@
       </div>
     </div>
     <button class="big" id="startBtn">JOGAR!</button>
-    <div class="help">
+    <div class="help touchHelp">
+      👆 <b>Puxe o dedo para trás</b>, como um estilingue: o tiro sai para o lado oposto e quanto mais puxar, mais força. <b>Solte</b> para atirar.<br>
+      ◀ ▶ andar &nbsp; ⤴ pular &nbsp; 🔄 trocar arma &nbsp; 🔍 zoom<br>
+      Cuidado com o vento! Quem cair na água… já era. 🌊
+    </div>
+    <div class="help kbHelp">
       <kbd>←</kbd><kbd>→</kbd> andar &nbsp; <kbd>↑</kbd><kbd>↓</kbd> mirar &nbsp; <kbd>Enter</kbd> pular<br>
       <kbd>Espaço</kbd> segure para carregar, solte para atirar &nbsp; <kbd>Tab</kbd> trocar arma<br>
+      Também dá pra mirar puxando o mouse para trás, como um estilingue.<br>
       Cuidado com o vento! Quem cair na água… já era. 🌊
     </div>
   </div>
@@ -209,7 +240,7 @@ let solid, stain, tex, caveBack, groundTop, hills = [], clouds = [];
 let terrainDirty = true;
 let gorillas = [], teams = [], projectiles = [], particles = [], texts = [];
 let state = "menu", active = null, curTeam = 1, wind = 0, turnTime = TURN;
-let weapon = "bosta", charging = false, power = 0;
+let weapon = "bosta", charging = false, power = 0, drag = null;
 let settleT = 0, waitT = 0, shake = 0, time = 0;
 let banner = { text: "", t: 9 };
 let ai = null;
@@ -217,6 +248,8 @@ let opts = { mode: "cpu", n: 2, err: 4 };
 let muted = false;
 const keys = {};
 
+const isTouch = window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
+if (isTouch) document.body.classList.add("touch");
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -506,7 +539,7 @@ function spawnProj(x, y, vx, vy, type, owner) {
 }
 function fire() {
   if (state !== "aim") return;
-  charging = false;
+  charging = false; drag = null;
   const g = active;
   const a = g.aim * Math.PI / 180;
   const sp = Math.max(0.06, power) * MAXV * powMul(g);
@@ -520,6 +553,7 @@ function fire() {
   state = "fly"; power = 0;
 }
 function explode(x, y, type) {
+  camFocus = { x, y: y - 30 };
   const w = WEAP[type], r = w.r;
   // cratera + mancha
   const R2 = r + 6;
@@ -583,6 +617,7 @@ function nextTurn() {
     g.stuck--;
     if (!g.stuck && !g.dead) { addText(g.x, g.y - 62, "Livre!", "#fff"); g.goo = []; }
   }
+  camFocus = null;
   curTeam = 1 - curTeam;
   const T = teams[curTeam], list = gorillas.filter(g => g.team === curTeam);
   for (let k = 0; k < list.length; k++) { T.idx = (T.idx + 1) % list.length; if (!list[T.idx].dead) break; }
@@ -603,7 +638,7 @@ function processDeaths() {
     }
   }
   if (died) sndSplat(false);
-  state = "wait"; waitT = died ? 1.2 : 0.4;
+  state = "wait"; waitT = died ? 1.8 : 0.8;
 }
 let matchId = 0;
 function gameOver(team) {
@@ -788,7 +823,7 @@ const quitBtn = document.getElementById("quit"), quitDlg = document.getElementBy
 function inMatch() { return state !== "menu" && document.getElementById("over").classList.contains("hidden"); }
 function openQuit() {
   if (!inMatch() || paused) return;
-  paused = true; charging = false; power = 0;
+  paused = true; charging = false; power = 0; drag = null;
   for (const k in keys) keys[k] = false;
   quitDlg.classList.remove("hidden");
 }
@@ -806,8 +841,8 @@ function update(dt) {
   if (state === "aim") {
     const g = active;
     turnTime -= dt;
-    if (g.gone || g.dead) { charging = false; state = "settle"; settleT = 0; }
-    else if (turnTime <= 0) { charging = false; addText(g.x, g.y - 60, "Tempo!", "#fff"); state = "settle"; settleT = 0; }
+    if (g.gone || g.dead) { charging = false; drag = null; state = "settle"; settleT = 0; }
+    else if (turnTime <= 0) { charging = false; drag = null; addText(g.x, g.y - 60, "Tempo!", "#fff"); state = "settle"; settleT = 0; }
     else {
       if (!teams[g.team].cpu) {
         if (!charging) {
@@ -817,7 +852,7 @@ function update(dt) {
         if (keys.up) g.aim = Math.min(88, g.aim + 65 * dt);
         if (keys.down) g.aim = Math.max(-80, g.aim - 65 * dt);
       } else aiUpdate(dt);
-      if (charging && state === "aim") { power += dt / 1.5; if (power >= 1) { power = 1; fire(); } }
+      if (charging && !drag && state === "aim") { power += dt / 1.5; if (power >= 1) { power = 1; fire(); } }
     }
   }
 
@@ -845,7 +880,7 @@ function update(dt) {
   if (state === "settle") {
     settleT += dt;
     const moving = gorillas.some(g => !g.gone && (g.vx !== 0 || g.vy !== 0 || !grounded(g)));
-    if ((settleT > 0.9 && !moving) || settleT > 6) processDeaths();
+    if ((settleT > 1.8 && !moving) || settleT > 7) processDeaths();
   }
   if (state === "wait") { waitT -= dt; if (waitT <= 0) nextTurn(); }
 
@@ -1028,6 +1063,7 @@ function drawCloud(c) {
 }
 function render() {
   if (terrainDirty && solid) renderTerrain();
+  updateView(Math.min(1, renderDt * 4));
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const sky = ctx.createLinearGradient(0, 0, 0, ch);
   sky.addColorStop(0, "#7cc0ea"); sky.addColorStop(0.65, "#cfe9f2"); sky.addColorStop(1, "#f6dfa8");
@@ -1103,10 +1139,12 @@ function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRe
 function drawHUD() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   if (state === "menu") return;
-  const s = clamp(cw / 1000, 0.62, 1.15);
+  const s = cw < 640 ? clamp(cw / 500, 0.7, 1) : clamp(cw / 1000, 0.62, 1.15);
   ctx.save(); ctx.scale(s, s);
   const vw = cw / s, vh = ch / s;
   const mid = vw / 2;
+  const T0 = cw < 640 ? 52 / s : 8;   // em ecrãs estreitos o painel desce para não tapar os botões
+  ctx.translate(0, T0 - 8);
 
   // painel de cima: vez + tempo + vento
   ctx.fillStyle = "rgba(255,248,236,.92)"; ctx.strokeStyle = "#5b3a1e"; ctx.lineWidth = 3;
@@ -1133,8 +1171,10 @@ function drawHUD() {
     ctx.beginPath(); ctx.moveTo(ax + d * 8, 53); ctx.lineTo(ax, 46); ctx.lineTo(ax, 60); ctx.closePath(); ctx.fill();
   }
 
+  ctx.translate(0, 8 - T0);
   // equipas em baixo
-  const by = vh - (isTouch ? 110 : 44);
+  const lift = isTouch && cw < 640 ? 84 / s : 0;
+  const by = vh - 44 - lift;
   teams.forEach((T, i) => {
     const hp = gorillas.filter(g => g.team === i).reduce((a, g) => a + Math.max(0, g.dispHp), 0);
     const y = by + i * 18;
@@ -1148,7 +1188,7 @@ function drawHUD() {
   // arma
   if (active && state === "aim") {
     const T = teams[active.team], w = WEAP[weapon], am = T.ammo[weapon];
-    const wy = isTouch ? 84 : vh - 54;
+    const wy = isTouch ? T0 + 70 : vh - 54;
     ctx.fillStyle = "rgba(255,248,236,.92)"; ctx.strokeStyle = "#5b3a1e"; ctx.lineWidth = 3;
     roundRect(10, wy, 200, 44, 12); ctx.fill(); ctx.stroke();
     ctx.textAlign = "left"; ctx.fillStyle = "#3b2612";
@@ -1161,6 +1201,13 @@ function drawHUD() {
     ctx.fillText("← → andar · ↑ ↓ mirar · Espaço atirar · Enter pular", vw - 14, vh - 14);
   }
 
+  // dica de toque
+  if (isTouch && isHumanTurn() && !drag && turnTime > TURN - 8) {
+    ctx.textAlign = "center"; ctx.font = "800 13px Nunito, sans-serif";
+    ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0,0,0,.55)"; ctx.fillStyle = "#fff";
+    const ht = cw < 640 ? "👆 Puxe para trás e solte" : "👆 Puxe para trás como um estilingue · solte para atirar";
+    const hy = vh - 56 - (cw < 640 ? 84 / s : 0); ctx.strokeText(ht, mid, hy); ctx.fillText(ht, mid, hy);
+  }
   // anúncio de vez
   if (banner.t < 1.6) {
     const f = banner.t / 1.6, a = f < 0.15 ? f / 0.15 : f > 0.75 ? (1 - f) / 0.25 : 1;
@@ -1171,24 +1218,57 @@ function drawHUD() {
     ctx.globalAlpha = 1;
   }
   ctx.restore();
+  // estilingue (coordenadas de ecrã)
+  if (drag) {
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 3; ctx.setLineDash([6, 6]);
+    ctx.beginPath(); ctx.moveTo(drag.x0, drag.y0); ctx.lineTo(drag.x, drag.y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(drag.x0, drag.y0, 14, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(drag.x0, drag.y0, dragMax() + 8, 0, 7); ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.stroke();
+    ctx.fillStyle = `hsl(${55 - power * 55},95%,50%)`; ctx.strokeStyle = "#3b2612";
+    ctx.beginPath(); ctx.arc(drag.x, drag.y, 12, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.font = "800 14px Nunito, sans-serif"; ctx.textAlign = "center";
+    ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.fillStyle = "#fff";
+    const pt = Math.round(power * 100) + "%";
+    ctx.strokeText(pt, drag.x, drag.y - 22); ctx.fillText(pt, drag.x, drag.y - 22);
+    ctx.restore();
+  }
 }
 
 // ---------- Loop ----------
 let last = performance.now(), acc = 0;
+let renderDt = 0.016;
 function frame(now) {
-  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  const dt = Math.min(0.1, (now - last) / 1000); last = now; renderDt = dt;
   if (state !== "menu" && !paused) { acc += dt; while (acc >= STEP) { update(STEP); acc -= STEP; } }
   quitBtn.classList.toggle("hidden", !inMatch() || paused);
+  if (isTouch) touchBar.classList.toggle("hidden", !inMatch() || paused);
   render();
   if (splat) drawSplat(now);
   requestAnimationFrame(frame);
 }
+let zoomFit = false, cam = { x: W / 2, y: H / 2 }, camFocus = null;
 function resize() {
   dpr = Math.min(2, window.devicePixelRatio || 1);
   cw = window.innerWidth; ch = window.innerHeight;
   cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
-  scale = Math.min(cw / W, ch / H);
-  ox = (cw - W * scale) / 2; oy = (ch - H * scale) / 2;
+  updateView(1);
+}
+function updateView(k) {
+  const fit = Math.min(cw / W, ch / H);
+  const small = isTouch || cw < 900 || ch < 520;
+  scale = (small && !zoomFit) ? Math.max(fit, Math.min(ch / 520, cw / 480, 1.6)) : fit;
+  // alvo da câmara: bosta no ar > gorila da vez
+  const p = projectiles[0];
+  const tgt = p ? { x: p.x, y: p.y } : (camFocus && state !== "aim") ? camFocus : (active && !active.gone ? { x: active.x, y: active.y - 60 } : null);
+  if (tgt) { cam.x += (clamp(tgt.x, 0, W) - cam.x) * k; cam.y += (clamp(tgt.y, 0, H) - cam.y) * k; }
+  const ww = W * scale, wh = H * scale;
+  ox = ww <= cw ? (cw - ww) / 2 : clamp(cw / 2 - cam.x * scale, cw - ww, 0);
+  if (wh <= ch) oy = Math.max((ch - wh) / 2, ch - wh - (isTouch ? 60 : 0));
+  else oy = clamp(ch / 2 - cam.y * scale, ch - wh, 0);
 }
 window.addEventListener("resize", resize);
 resize();
@@ -1202,8 +1282,8 @@ function cycleWeapon() {
   for (let k = 0; k < WEAP_ORDER.length; k++) { i = (i + 1) % WEAP_ORDER.length; if (T.ammo[WEAP_ORDER[i]] > 0) break; }
   weapon = WEAP_ORDER[i];
 }
-function fireDown() { if (isHumanTurn() && !charging) { charging = true; power = 0; } }
-function fireUp() { if (isHumanTurn() && charging) fire(); }
+function fireDown() { if (isHumanTurn() && !charging) { charging = true; power = 0; drag = null; } }
+function fireUp() { if (isHumanTurn() && charging && !drag) fire(); }
 window.addEventListener("keydown", e => {
   audioInit();
   if (e.code === "Escape") { e.preventDefault(); if (paused) closeQuit(); else openQuit(); return; }
@@ -1221,8 +1301,7 @@ window.addEventListener("keyup", e => {
 });
 window.addEventListener("blur", () => { for (const k in keys) keys[k] = false; });
 
-const isTouch = window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
-if (isTouch) document.getElementById("touch").classList.remove("hidden");
+const touchBar = document.getElementById("touch");
 document.querySelectorAll("#touch button").forEach(b => {
   const k = b.dataset.k;
   b.addEventListener("pointerdown", e => {
@@ -1236,6 +1315,37 @@ document.querySelectorAll("#touch button").forEach(b => {
   const up = e => { if (k === "fire") fireUp(); else if (keys[k] !== undefined) keys[k] = false; };
   b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up);
 });
+
+// ---------- Mira com o dedo / rato (estilingue) ----------
+function dragMax() { return clamp(Math.min(cw, ch) * 0.32, 100, 200); }
+cv.addEventListener("pointerdown", e => {
+  audioInit();
+  if (!isHumanTurn() || charging) return;
+  e.preventDefault();
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY };
+  charging = true; power = 0;
+});
+cv.addEventListener("pointermove", e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (!isHumanTurn()) { drag = null; charging = false; return; }
+  drag.x = e.clientX; drag.y = e.clientY;
+  // estilingue: puxar para trás e para baixo atira para a frente e para cima
+  const vx = drag.x0 - drag.x, vy = drag.y - drag.y0, len = Math.hypot(vx, vy);
+  if (len > 8) {
+    if (Math.abs(vx) > 4) active.face = vx > 0 ? 1 : -1;
+    active.aim = clamp(Math.atan2(vy, Math.abs(vx)) * 180 / Math.PI, -80, 88);
+  }
+  power = clamp((len - 8) / dragMax(), 0, 1);
+});
+function endDrag(e, cancel) {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (!cancel && isHumanTurn() && power >= 0.05) fire();
+  else { drag = null; charging = false; power = 0; }
+}
+cv.addEventListener("pointerup", e => endDrag(e, false));
+cv.addEventListener("pointercancel", e => endDrag(e, true));
+document.getElementById("zoom").addEventListener("click", e => { zoomFit = !zoomFit; e.currentTarget.textContent = zoomFit ? "🔎" : "🔍"; e.currentTarget.blur(); });
 
 function toggleMute() { muted = !muted; document.getElementById("mute").textContent = muted ? "🔇" : "🔊"; }
 document.getElementById("mute").addEventListener("click", e => { audioInit(); toggleMute(); e.currentTarget.blur(); });
