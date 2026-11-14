@@ -1062,6 +1062,14 @@ function drawCloud(c) {
   ctx.restore();
 }
 function render() {
+  if (solid && !terrainDirty && time - (lastCheck || 0) > 2) {
+    // verificação de segurança: se a imagem do terreno sumiu, redesenha
+    lastCheck = time;
+    for (let x = 50; x < W; x += 300) {
+      const y = H - 2;
+      if (solid[y * W + x]) { try { if (tctx.getImageData(x, y, 1, 1).data[3] === 0) terrainDirty = true; } catch (e) {} break; }
+    }
+  }
   if (terrainDirty && solid) renderTerrain();
   updateView(Math.min(1, renderDt * 4));
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1250,6 +1258,7 @@ function frame(now) {
   if (splat) drawSplat(now);
   requestAnimationFrame(frame);
 }
+let lastCheck = 0;
 let zoomFit = false, cam = { x: W / 2, y: H / 2 }, camFocus = null;
 function resize() {
   dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -1271,6 +1280,14 @@ function updateView(k) {
   else oy = clamp(ch / 2 - cam.y * scale, ch - wh, 0);
 }
 window.addEventListener("resize", resize);
+// No celular o navegador pode apagar a imagem do cenário quando a aba fica em segundo plano:
+// redesenha o terreno sempre que a página volta a ficar visível.
+function redrawTerrain() { terrainDirty = true; resize(); }
+document.addEventListener("visibilitychange", () => { if (!document.hidden) redrawTerrain(); });
+window.addEventListener("pageshow", redrawTerrain);
+window.addEventListener("focus", redrawTerrain);
+tcv.addEventListener("contextrestored", redrawTerrain);
+cv.addEventListener("contextrestored", redrawTerrain);
 resize();
 
 // ---------- Controlo ----------
