@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Gorilas</title>
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#6b3e1f">
@@ -400,6 +400,14 @@ function sndOoh() {
   const g = AC.createGain(); env(g, t, 0.12, 0.32);
   o.connect(f); f.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + 0.35);
 }
+function sndThump() {
+  if (!AC || muted) return;
+  const t0 = AC.currentTime;
+  const o = AC.createOscillator(); o.type = "sine";
+  o.frequency.setValueAtTime(110, t0); o.frequency.exponentialRampToValueAtTime(55, t0 + 0.12);
+  const g = AC.createGain(); env(g, t0, 0.35, 0.14);
+  o.connect(g); g.connect(AC.destination); o.start(t0); o.stop(t0 + 0.16);
+}
 function sndPlop() {
   if (!AC || muted) return;
   const t = AC.currentTime;
@@ -519,6 +527,7 @@ function makeGorillas() {
       team, name: teams[team].names[nameIdx[team]++], x, y: y - 1, vx: 0, vy: 0, rx: 0, ry: 0,
       hp: 100, dispHp: 100, face: x < W / 2 ? 1 : -1, aim: 40, dead: false, gone: false,
       walk: 0, walkAcc: 0, throwT: 0, hurtT: 0, stuck: 0, goo: [],
+      ph: rand(0, 6.28), blinkT: 0, nextBlink: rand(1, 4), crouchT: 0, landT: 0, landAmt: 0, staggerT: 0, hitT: 0, shakeT: 0, beatT: 0, beatSign: 0, spots: [], spotT: 0,
     });
   });
 }
@@ -554,8 +563,42 @@ function stepG(g, dt) {
   if (g.y > WATER + 8) drown(g);
   if (g.throwT > 0) g.throwT -= dt;
   if (g.hurtT > 0) g.hurtT -= dt;
+  animTimers(g, dt);
+}
+function animTimers(g, dt) {
+  if (g.dead) return;
+  // agachar antes do salto
+  if (g.crouchT > 0) {
+    g.crouchT -= dt;
+    if (g.crouchT <= 0) { g.crouchT = 0; if (grounded(g)) { g.vy = -300; g.vx = g.face * 150; g.ry = 0; g.rx = 0; } }
+  }
+  if (g.landT > 0) g.landT = Math.max(0, g.landT - dt);
+  if (g.staggerT > 0) g.staggerT = Math.max(0, g.staggerT - dt);
+  // piscar os olhos
+  if (g.blinkT > 0) g.blinkT -= dt;
+  else if ((g.nextBlink -= dt) <= 0) { g.blinkT = 0.12; g.nextBlink = rand(2, 5); }
+  // reação ao golpe: protege a cabeça, depois sacode a bosta
+  if (g.hitT > 0) { g.hitT -= dt; if (g.hitT <= 0) { g.hitT = 0; g.shakeT = 0.9; } }
+  else if (g.shakeT > 0) {
+    g.shakeT = Math.max(0, g.shakeT - dt);
+    if (Math.random() < dt * 22) particles.push({ kind: "chunk", x: g.x + rand(-10, 10), y: g.y - rand(8, 30), vx: rand(-110, 110), vy: rand(-140, -40), life: rand(0.5, 0.9), t: 0, size: rand(1.5, 3), color: Math.random() < 0.7 ? "#6b3e1f" : "#8f5a2e" });
+  }
+  if (g.spotT > 0) g.spotT = Math.max(0, g.spotT - dt);
+  // bater no peito
+  if (g.beatT > 0) {
+    g.beatT = Math.max(0, g.beatT - dt);
+    const b = Math.sin((1.4 - g.beatT) * 20), sgn = b > 0.8 ? 1 : b < -0.8 ? -1 : 0;
+    if (sgn && sgn !== g.beatSign) sndThump();
+    g.beatSign = sgn;
+  }
 }
 function land(g) {
+  if (g.vy > 140 && !g.dead) {
+    g.landT = 0.25; g.landAmt = clamp(g.vy / 600, 0.35, 1);
+    const n = Math.round(4 + g.vy / 60);
+    for (let i = 0; i < n; i++) particles.push({ kind: "dust", x: g.x + rand(-12, 12), y: g.y - 1, vx: rand(-60, 60), vy: rand(-25, -5), life: rand(0.4, 0.7), t: 0, size: rand(2.5, 4.5) });
+    if (g.vy > 430) g.staggerT = 0.6;
+  }
   if (g.vy > 560 && !g.dead) {
     const d = Math.round((g.vy - 560) / 14);
     if (d > 0) hurt(g, d);
@@ -592,6 +635,7 @@ function stuckMsg(g) {
 function walk(g, dir, dt) {
   g.face = dir;
   if (g.stuck > 0) { stuckMsg(g); return; }
+  if (g.crouchT > 0) return;
   g.lastWalk = time;
   if (!grounded(g)) return;
   g.walkAcc += 62 * dt;
@@ -600,7 +644,7 @@ function walk(g, dir, dt) {
 function jump(g) {
   if (g.stuck > 0) { stuckMsg(g); return; }
   g.lastWalk = time;
-  if (grounded(g)) { g.vy = -300; g.vx = g.face * 150; g.ry = 0; g.rx = 0; }
+  if (grounded(g) && !g.crouchT) g.crouchT = 0.15;
 }
 
 // ---------- Projéteis ----------
@@ -630,10 +674,12 @@ function launchFrom(g) { return launchAt(g, g.face, g.aim, 18); }
 function spawnProj(x, y, vx, vy, type, owner) {
   projectiles.push({ x, y, vx, vy, type, owner, age: 0, rot: 0, spin: rand(-8, 8) });
 }
+let shooterTeam = null, shotHit = false;
 function fire() {
   if (state !== "aim") return;
   charging = false; drag = null;
   const g = active;
+  shooterTeam = g.team; shotHit = false;
   const a = g.aim * Math.PI / 180;
   const sp = Math.max(0.06, power) * MAXV * powMul(g);
   const L = launchFrom(g);
@@ -665,6 +711,9 @@ function explode(x, y, type) {
     if (d < R) {
       const f = 1 - d / R;
       hurt(g, Math.max(1, Math.round(w.dmg * Math.min(1, f * 1.25))));
+      if (shooterTeam !== null && g.team !== shooterTeam) shotHit = true;
+      g.hitT = 0.8; g.shakeT = 0; g.beatT = 0; g.spotT = 3.5; g.spots = [];
+      for (let i = 0; i < 7; i++) g.spots.push({ x: rand(-10, 10), y: rand(-30, -6), r: rand(1.5, 3.2) });
       if (type === "grude" && !g.dead) {
         g.stuck = (active && active.team === g.team) ? 2 : 1;
         g.goo = [];
@@ -732,6 +781,11 @@ function processDeaths() {
   }
   if (died) sndSplat(false);
   state = "wait"; waitT = died ? 1.8 : 0.8;
+  if (shooterTeam !== null && !shotHit) {
+    for (const g of gorillas) if (!g.dead && g.team !== shooterTeam) { g.beatT = 1.4; g.beatSign = 0; }
+    waitT = Math.max(waitT, 1.5);
+  }
+  shooterTeam = null;
 }
 let matchId = 0;
 function gameOver(team) {
@@ -966,6 +1020,7 @@ function update(dt) {
     if (p.t >= p.life) { particles.splice(i, 1); continue; }
     if (p.kind === "chunk" || p.kind === "drop") { p.vy += GRAVP * dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.kind === "chunk" && S(p.x, p.y)) { p.vx *= 0.3; p.vy = 0; } }
     else if (p.kind === "stink") { p.x += (p.vx + wind * 0.25) * dt; p.y += p.vy * dt; }
+    else if (p.kind === "dust") { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.92; }
   }
   for (let i = texts.length - 1; i >= 0; i--) { texts[i].t += dt; if (texts[i].t > 1.6) texts.splice(i, 1); }
 
@@ -1017,44 +1072,11 @@ function drawGorilla(g) {
   }
   const isActive = g === active && (state === "aim");
   const air = !grounded(g);
-  const bob = Math.sin(g.walk * 2.2) * 1.2;
-  const buttPose = !air && ((isActive && time - (g.lastWalk || -9) > 0.25) || g.throwT > 0);
-  if (buttPose) drawButtPose(g, isActive); else {
-  ctx.save(); ctx.translate(g.x, g.y); ctx.scale(g.face, 1);
-  if (g.hurtT > 0) ctx.translate(Math.sin(time * 70) * 1.5, 0);
-  const fur = "#2e2a2a", skin = "#8a7262", belly = "#5d4a3e";
-  // pernas
-  ctx.fillStyle = fur;
-  const lp = air ? 3 : Math.sin(g.walk * 2.2) * 3;
-  ell(-5 + lp, -3, 4, 4); ell(5 - lp, -3, 4, 4);
-  // corpo
-  ell(0, -14 + bob, 12.5, 12);
-  ctx.fillStyle = belly; ell(3, -12 + bob, 7, 8);
-  // braço de trás
-  ctx.fillStyle = fur;
-  ctx.save(); ctx.translate(-7, -19 + bob); ctx.rotate(0.5 + (air ? -1.2 : 0)); ell(0, 7, 4, 9); ctx.restore();
-  // cabeça
-  const hy = -30 + bob;
-  ell(3, hy, 8.5, 8);
-  ctx.fillStyle = skin; ell(6.5, hy + 2, 6, 5);
-  ctx.fillStyle = "#fff"; ell(5, hy - 1.5, 1.9, 2.1); ell(9.3, hy - 1.5, 1.9, 2.1);
-  ctx.fillStyle = "#111"; ell(5.6, hy - 1.3, 1, 1.2); ell(9.9, hy - 1.3, 1, 1.2);
-  ctx.fillStyle = fur; ctx.fillRect(2.8, hy - 4.6, 9, 1.8);
-  ctx.fillStyle = "#3a2c25"; ell(7.5, hy + 2.5, 0.8, 0.6); ell(9.6, hy + 2.5, 0.8, 0.6);
-  ctx.strokeStyle = "#3a2c25"; ctx.lineWidth = 1; ctx.beginPath();
-  if (g.hurtT > 0) ctx.arc(8, hy + 5.6, 1.6, 0, 7); else ctx.arc(8, hy + 3.6, 2.2, 0.3, Math.PI - 0.3);
-  ctx.stroke();
-  // fita da equipa
-  ctx.fillStyle = T.color; ctx.fillRect(-5, hy - 7.5, 16, 3);
-  ctx.beginPath(); ctx.moveTo(-5, hy - 6); ctx.lineTo(-11, hy - 9 + Math.sin(time * 8) * 2); ctx.lineTo(-10, hy - 3); ctx.fill();
-  // braço da frente
-  ctx.fillStyle = fur;
-  ctx.save(); ctx.translate(4, -20 + bob);
-  if (g.throwT > 0) { ctx.rotate(-1.2); ctx.beginPath(); ctx.ellipse(8, 0, 9, 4, 0, 0, 7); ctx.fill(); }
-  else { ctx.rotate(1.3 + (air ? -2 : 0)); ctx.beginPath(); ctx.ellipse(7, 0, 9, 4, 0, 0, 7); ctx.fill(); }
-  ctx.restore();
-  ctx.restore();
-  }
+  const busy = g.crouchT > 0 || g.landT > 0 || g.staggerT > 0 || g.hitT > 0 || g.shakeT > 0;
+  const buttPose = !air && !busy && ((isActive && time - (g.lastWalk || -9) > 0.25) || g.throwT > 0);
+  if (buttPose) drawButtPose(g, isActive);
+  else if (!air && !g.crouchT && time - (g.lastWalk || -9) < 0.15) drawQuad(g);
+  else drawUpright(g, air);
 
   if (g.stuck > 0) drawGoo(g);
 
@@ -1094,6 +1116,95 @@ function drawGoo(g) {
   ctx.fillStyle = "rgba(255,255,255,.35)"; ell(-3, -8, 2, 0.9); ell(8, -6, 1.5, 0.7);
   ctx.restore();
   drawFlies(g.x, g.y - 14, 3, 16);
+}
+
+const FUR = "#2e2a2a", FUR_FAR = "#1d1a1a", SKIN = "#8a7262", BELLY = "#5d4a3e";
+function drawHead(g, o) {
+  const T = teams[g.team];
+  ctx.fillStyle = FUR; ell(0, 0, 8.5, 8);
+  ctx.fillStyle = SKIN; ell(3.5, 2, 6, 5);
+  const sq = o.squint ? 0.3 : g.blinkT > 0 ? 0.15 : 1, lk = o.look || 0;
+  ctx.fillStyle = "#fff"; ell(2, -1.5, 1.9, 2.1 * Math.max(sq, 0.35)); ell(6.3, -1.5, 1.9, 2.1 * Math.max(sq, 0.35));
+  ctx.fillStyle = "#111"; ell(2.6 + lk, -1.3, 1, 1.2 * sq); ell(6.9 + lk, -1.3, 1, 1.2 * sq);
+  ctx.fillStyle = FUR; ctx.fillRect(-0.2, -4.6, 9, 1.8);
+  ctx.fillStyle = "#3a2c25"; ell(4.5, 2.5, 0.8, 0.6); ell(6.6, 2.5, 0.8, 0.6);
+  if (o.mouthO) ell(5, 5.4, 1.5, 1.8);
+  else { ctx.strokeStyle = "#3a2c25"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(5, 3.6, 2.2, 0.3, Math.PI - 0.3); ctx.stroke(); }
+  ctx.fillStyle = T.color; ctx.fillRect(-8, -7.5, 16, 3);
+  ctx.beginPath(); ctx.moveTo(-8, -6); ctx.lineTo(-14, -9 + Math.sin(time * 8) * 2); ctx.lineTo(-13, -3); ctx.fill();
+}
+function drawSpots(g) {
+  if (!(g.spotT > 0) || !g.spots.length) return;
+  ctx.globalAlpha = Math.min(1, g.spotT / 1.2);
+  for (const sp of g.spots) { ctx.fillStyle = "#5e3518"; ell(sp.x, sp.y, sp.r, sp.r * 0.8); ctx.fillStyle = "#8f5a2e"; ell(sp.x - sp.r * 0.3, sp.y - sp.r * 0.3, sp.r * 0.4, sp.r * 0.3); }
+  ctx.globalAlpha = 1;
+}
+// 1) andar de quatro, apoiado nos nós dos dedos
+function drawQuad(g) {
+  const ph = (g.walk * 0.12) % 1, bob = Math.sin(ph * 4 * Math.PI) * 0.7;
+  ctx.save(); ctx.translate(g.x, g.y); ctx.scale(g.face, 1);
+  const limb = (hx, hy, off, col, w) => {
+    const p = (ph + off) % 1, sw = Math.sin(p * 2 * Math.PI), lift = Math.max(0, Math.cos(p * 2 * Math.PI)) * 2.2;
+    const fx = hx + sw * 4, fy = -lift;
+    ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(hx, hy + bob); ctx.quadraticCurveTo((hx + fx) / 2 + 1, (hy + bob + fy) / 2, fx, fy - 1); ctx.stroke();
+    ctx.fillStyle = col; ell(fx + 0.5, fy - 1, 2, 1.5);
+  };
+  limb(-5, -8, 0.5, FUR_FAR, 4); limb(5, -11, 0.75, FUR_FAR, 4.2);
+  ctx.fillStyle = FUR; ell(-0.5, -10.5 + bob, 9.5, 6.5, -0.22);
+  ctx.fillStyle = BELLY; ell(1, -7.5 + bob, 5, 2.8, -0.22);
+  drawSpots(g);
+  limb(-5, -8, 0, FUR, 4);
+  ctx.save(); ctx.translate(8.5, -15 + bob * 1.3); ctx.rotate(0.12); ctx.scale(0.8, 0.8); drawHead(g, {}); ctx.restore();
+  limb(5, -11, 0.25, FUR, 4.2);
+  ctx.restore();
+}
+// 2) e 3) de pé: peso nos saltos, respiração, piscar, bater no peito, reação ao golpe
+function drawUpright(g, air) {
+  let sx = 1, sy = 1, tilt = 0;
+  if (g.crouchT > 0) { const k = 1 - g.crouchT / 0.15; sy = 1 - 0.25 * k; sx = 1 + 0.12 * k; }
+  else if (g.landT > 0) { const q = Math.sin(Math.PI * (1 - g.landT / 0.25)) * g.landAmt; sy = 1 - 0.3 * q; sx = 1 + 0.18 * q; }
+  else if (air && g.vy < -60) { sy = 1.08; sx = 0.95; }
+  if (g.staggerT > 0) { const k = 1 - g.staggerT / 0.6; tilt += Math.sin(k * 18) * 0.14 * (1 - k); }
+  if (g.hitT > 0) tilt -= 0.28 * Math.sin(Math.min(1, (0.8 - g.hitT) / 0.8) * Math.PI * 0.9);
+  let shake = 0;
+  if (g.shakeT > 0) { const k = 1 - g.shakeT / 0.9; shake = Math.sin(k * 40) * 0.16 * (1 - k); }
+  const br = Math.sin(time * 2.4 + g.ph);
+  const beat = g.beatT > 0 ? Math.sin((1.4 - g.beatT) * 20) : 0;
+  const hit = g.hitT > 0, squint = hit || g.shakeT > 0 || g.hurtT > 0;
+  ctx.save(); ctx.translate(g.x, g.y); ctx.scale(g.face, 1);
+  if (g.hurtT > 0 && !hit) ctx.translate(Math.sin(time * 70) * 1.5, 0);
+  ctx.rotate(tilt + shake); ctx.scale(sx, sy);
+  // braço de trás
+  ctx.fillStyle = FUR_FAR;
+  ctx.save(); ctx.translate(-7, -19);
+  ctx.rotate(hit ? Math.PI - 0.2 : g.beatT > 0 ? -0.5 - beat * 0.5 : air ? -1.4 : g.crouchT > 0 ? 1.1 : 0.45 + br * 0.03);
+  ell(0, 7, 4, 9); ctx.restore();
+  // pernas
+  ctx.fillStyle = FUR;
+  const lp = air ? 3 : 0;
+  ell(-5 + lp, -3, 4, 4); ell(5 - lp, -3, 4, 4);
+  // corpo com respiração
+  ell(0, -14, 12.5 * (1 + br * 0.025), 12 * (1 + br * 0.035));
+  ctx.fillStyle = BELLY; ell(3, -12, 7 * (1 + br * 0.05), 8 * (1 + br * 0.05));
+  drawSpots(g);
+  // cabeça
+  ctx.save(); ctx.translate(3, -30);
+  ctx.rotate(g.shakeT > 0 ? shake * 1.4 : g.beatT > 0 ? -0.12 : Math.sin(time * 0.8 + g.ph) * 0.05);
+  drawHead(g, { squint, mouthO: g.beatT > 0 || g.hurtT > 0, look: (g.beatT > 0 || hit) ? 0 : Math.sin(time * 0.7 + g.ph) * 0.45 });
+  ctx.restore();
+  // braço da frente
+  ctx.fillStyle = FUR;
+  ctx.save(); ctx.translate(4, -20);
+  const fa = g.throwT > 0 ? -1.2 : hit ? -1.9 : g.beatT > 0 ? 0.9 + beat * 0.45 : air ? -0.7 : g.crouchT > 0 ? 2.2 : 1.3 + br * 0.03;
+  ctx.rotate(fa); ctx.beginPath(); ctx.ellipse(7, 0, 9, 4, 0, 0, 7); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+  // "tum tum" ao bater no peito
+  if (g.beatT > 0 && Math.abs(beat) > 0.75) {
+    ctx.strokeStyle = "rgba(255,255,255,.8)"; ctx.lineWidth = 1.5;
+    for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.arc(g.x + g.face * 8, g.y - 16, 8 + i * 5, g.face > 0 ? -0.6 : Math.PI - 0.6, g.face > 0 ? 0.6 : Math.PI + 0.6); ctx.stroke(); }
+  }
 }
 function drawButtPose(g, isActive) {
   const T = teams[g.team], a = g.aim * Math.PI / 180;
@@ -1205,6 +1316,9 @@ function render() {
     else if (p.kind === "stink") {
       ctx.globalAlpha = 0.35 * f; ctx.fillStyle = "#8fbf3a";
       ell(p.x + Math.sin(p.t * 3 + p.ph) * 6, p.y, p.size * (1 + p.t * 0.5), p.size * 0.8 * (1 + p.t * 0.5));
+    } else if (p.kind === "dust") {
+      ctx.globalAlpha = 0.55 * f; ctx.fillStyle = "#c8a77a";
+      ell(p.x, p.y, p.size * (1 + p.t * 3), p.size * 0.7 * (1 + p.t * 2));
     } else if (p.kind === "ring") {
       ctx.globalAlpha = f; ctx.strokeStyle = "#ffe9a8"; ctx.lineWidth = 4 * f;
       ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (1 - f * 0.6), 0, 7); ctx.stroke();
