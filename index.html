@@ -41,6 +41,8 @@
   #mute{position:fixed;top:10px;right:10px;z-index:5;padding:4px 10px;font-size:18px}
   #quit{position:fixed;top:10px;right:66px;z-index:5;padding:4px 12px;font-size:15px}
   #quitDlg{z-index:30}
+  .langs{position:absolute;top:10px;right:10px;display:flex;gap:4px;z-index:2}
+  .langs button{font-size:12px;padding:3px 7px;border-width:2px;box-shadow:0 2px 0 #5b3a1e;border-radius:8px}
   #touch{position:fixed;left:0;right:0;bottom:0;z-index:4;display:flex;justify-content:space-between;align-items:flex-end;padding:10px;pointer-events:none}
   #touch .grp{display:flex;gap:8px;pointer-events:auto}
   #touch button{width:56px;height:56px;font-size:22px;padding:0;opacity:.85;touch-action:none}
@@ -77,17 +79,17 @@
 <body>
 <canvas id="c"></canvas>
 <canvas id="splat" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:20"></canvas>
-<button id="mute" title="Som (M)">🔊</button>
+<button id="mute" title="Som (M)" data-i18n-title="sound">🔊</button>
 <button id="zoom" title="Zoom">🔍</button>
-<button id="quit" class="hidden" title="Sair (Esc)">✕ Sair</button>
+<button id="quit" class="hidden" title="Sair (Esc)" data-i18n-title="quitTitle" data-i18n="quitBtn">✕ Sair</button>
 <div id="quitDlg" class="overlay hidden">
   <div class="panel" style="max-width:380px">
-    <h1 style="font-size:38px">Sair da partida?</h1>
-    <p class="sub">O progresso desta partida será perdido.</p>
+    <h1 style="font-size:38px" data-i18n="quitQ">Sair da partida?</h1>
+    <p class="sub" data-i18n="quitSub">O progresso desta partida será perdido.</p>
     <div class="row">
-      <button class="big" id="resumeBtn" style="font-size:22px;padding:8px 22px">Continuar</button>
+      <button class="big" id="resumeBtn" style="font-size:22px;padding:8px 22px" data-i18n="resume">Continuar</button>
     </div>
-    <div class="row"><button id="leaveBtn">Voltar ao menu</button></div>
+    <div class="row"><button id="leaveBtn" data-i18n="leave">Voltar ao menu</button></div>
   </div>
 </div>
 
@@ -103,7 +105,10 @@
 </div>
 
 <div id="menu" class="overlay">
-  <div class="panel">
+  <div class="panel" style="position:relative">
+    <div class="langs" id="langRow">
+      <button data-lang="pt">🇧🇷 PT</button><button data-lang="en">🇺🇸 EN</button><button data-lang="de">🇩🇪 DE</button>
+    </div>
     <h1 class="title" aria-label="Gorilas">
       <svg id="tGor" viewBox="0 0 100 110" aria-hidden="true">
         <g id="gUpper">
@@ -143,7 +148,7 @@
           </g>
         </g>
       </svg>
-      <span class="tt">Gorilas</span>
+      <span class="tt" data-i18n="title">Gorilas</span>
       <span id="tPoopSlot"><svg id="tPoop" viewBox="0 0 100 100" aria-hidden="true">
         <g class="stars"><path id="tStar1" d="M0 -8 L2.4 -2.4 L8 0 L2.4 2.4 L0 8 L-2.4 2.4 L-8 0 L-2.4 -2.4Z" fill="#ffd23f" stroke="#c98a00" stroke-width="1.2"/><path id="tStar2" d="M0 -8 L2.4 -2.4 L8 0 L2.4 2.4 L0 8 L-2.4 2.4 L-8 0 L-2.4 -2.4Z" fill="#ffd23f" stroke="#c98a00" stroke-width="1.2"/></g>
         <ellipse cx="50" cy="83" rx="45" ry="15" fill="#6e4220"/>
@@ -160,29 +165,29 @@
         <path class="mWavy" d="M36 82 q4 -5 8 0 t8 0 t8 0 t8 0" stroke="#3b2612" stroke-width="3" fill="none" stroke-linecap="round"/>
       </svg></span>
     </h1>
-    <p class="sub">Artilharia primata por turnos. Mire, carregue e atire!</p>
-    <div class="label">Modo</div>
+    <p class="sub" data-i18n="sub">Artilharia primata por turnos. Mire, carregue e atire!</p>
+    <div class="label" data-i18n="mode">Modo</div>
     <div class="row" id="modeRow">
-      <button data-mode="cpu" class="sel">🦍 vs 🤖 Computador</button>
-      <button data-mode="pvp">🦍 vs 🦍 2 Jogadores</button>
+      <button data-mode="cpu" class="sel" data-i18n="vsCpu">🦍 vs 🤖 Computador</button>
+      <button data-mode="pvp" data-i18n="pvp">🦍 vs 🦍 2 Jogadores</button>
     </div>
-    <div class="label">Gorilas por time</div>
+    <div class="label" data-i18n="perTeam">Gorilas por time</div>
     <div class="row" id="countRow">
       <button data-n="1">1</button><button data-n="2" class="sel">2</button><button data-n="3">3</button>
     </div>
     <div id="diffWrap">
-      <div class="label">Pontaria do computador</div>
+      <div class="label" data-i18n="cpuAim">Pontaria do computador</div>
       <div class="row" id="diffRow">
-        <button data-d="9">Fraquinha</button><button data-d="4" class="sel">Normal</button><button data-d="1.2">Certeira</button>
+        <button data-d="9" data-i18n="d1">Fraquinha</button><button data-d="4" class="sel" data-i18n="d2">Normal</button><button data-d="1.2" data-i18n="d3">Certeira</button>
       </div>
     </div>
-    <button class="big" id="startBtn">JOGAR!</button>
-    <div class="help touchHelp">
+    <button class="big" id="startBtn" data-i18n="play">JOGAR!</button>
+    <div class="help touchHelp" data-i18n="touchHelp">
       👆 <b>Puxe o dedo para trás</b>, como um estilingue: o tiro sai para o lado oposto e quanto mais puxar, mais força. <b>Solte</b> para atirar.<br>
       ◀ ▶ andar &nbsp; ⤴ pular &nbsp; 🔄 trocar arma &nbsp; 🔍 zoom<br>
       Cuidado com o vento! Quem cair na água… já era. 🌊
     </div>
-    <div class="help kbHelp">
+    <div class="help kbHelp" data-i18n="kbHelp">
       <kbd>←</kbd><kbd>→</kbd> andar &nbsp; <kbd>↑</kbd><kbd>↓</kbd> mirar &nbsp; <kbd>Enter</kbd> pular<br>
       <kbd>Espaço</kbd> segure para carregar, solte para atirar &nbsp; <kbd>Tab</kbd> trocar arma<br>
       Também dá pra mirar puxando o mouse para trás, como um estilingue.<br>
@@ -196,9 +201,9 @@
     <h1 id="overTitle">Vitória!</h1>
     <p class="sub" id="overSub"></p>
     <div class="row">
-      <button class="big" id="againBtn">Jogar de novo!</button>
+      <button class="big" id="againBtn" data-i18n="again">Jogar de novo!</button>
     </div>
-    <div class="row"><button id="menuBtn">Menu</button></div>
+    <div class="row"><button id="menuBtn" data-i18n="menu">Menu</button></div>
   </div>
 </div>
 
@@ -225,8 +230,8 @@ const WEAP_ORDER = ["bosta", "tripla", "grude", "mega"];
 const AMMO = { bosta: Infinity, tripla: 2, grude: 2, mega: 1 };
 
 const TEAMS_DEF = [
-  { name: "Peludos",    color: "#e5484d", names: ["Kong", "Bongo", "Tonho"] },
-  { name: "Fedorentos", color: "#3e8ed0", names: ["Zeca", "Bobó", "Gugu"] },
+  { key: "team0", name: "Peludos",    color: "#e5484d", names: ["Kong", "Bongo", "Tonho"] },
+  { key: "team1", name: "Fedorentos", color: "#3e8ed0", names: ["Zeca", "Bobó", "Gugu"] },
 ];
 
 // ---------- Estado ----------
@@ -250,6 +255,81 @@ const keys = {};
 
 const isTouch = window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
 if (isTouch) document.body.classList.add("touch");
+// ---------- Idiomas ----------
+const STR = {
+  pt: {
+    title: "Gorilas", sub: "Artilharia primata por turnos. Mire, carregue e atire!", mode: "Modo",
+    vsCpu: "🦍 vs 🤖 Computador", pvp: "🦍 vs 🦍 2 Jogadores", perTeam: "Gorilas por time", cpuAim: "Pontaria do computador",
+    d1: "Fraquinha", d2: "Normal", d3: "Certeira", play: "JOGAR!",
+    touchHelp: '👆 <b>Puxe o dedo para trás</b>, como um estilingue: o tiro sai para o lado oposto e quanto mais puxar, mais força. <b>Solte</b> para atirar.<br>◀ ▶ andar &nbsp; ⤴ pular &nbsp; 🔄 trocar arma &nbsp; 🔍 zoom<br>Cuidado com o vento! Quem cair na água… já era. 🌊',
+    kbHelp: '<kbd>←</kbd><kbd>→</kbd> andar &nbsp; <kbd>↑</kbd><kbd>↓</kbd> mirar &nbsp; <kbd>Enter</kbd> pular<br><kbd>Espaço</kbd> segure para carregar, solte para atirar &nbsp; <kbd>Tab</kbd> trocar arma<br>Também dá pra mirar puxando o mouse para trás, como um estilingue.<br>Cuidado com o vento! Quem cair na água… já era. 🌊',
+    quitQ: "Sair da partida?", quitSub: "O progresso desta partida será perdido.", resume: "Continuar", leave: "Voltar ao menu",
+    again: "Jogar de novo!", menu: "Menu", quitBtn: "✕ Sair", sound: "Som (M)", quitTitle: "Sair (Esc)",
+    team0: "Peludos", team1: "Fedorentos",
+    turn: "Vez de {n}!", time: "Tempo!", glub: "Glub glub!", stuck: "Grudado!", free: "Livre!", stuckHalf: "Grudado: metade da força!",
+    draw: "Empate fedorento!", drawSub: "Ninguém sobreviveu ao cheiro.", win: "Os {t} venceram!",
+    winCpu: "O computador mira melhor com bosta. Bora se vingar?", winPvp: "Reis e rainhas da selva. E da bosta.",
+    wind: "VENTO", tabSwap: "Tab: trocar", kbHint: "← → andar · ↑ ↓ mirar · Espaço atirar · Enter pular",
+    touchHintS: "👆 Puxe para trás e solte", touchHintL: "👆 Puxe para trás como um estilingue · solte para atirar",
+    w_bosta: "Bosta", w_tripla: "Bosta Tripla", w_mega: "Mega Bosta", w_grude: "Bosta Grudenta",
+  },
+  en: {
+    title: "Gorillas", sub: "Turn-based primate artillery. Aim, charge and fling!", mode: "Mode",
+    vsCpu: "🦍 vs 🤖 Computer", pvp: "🦍 vs 🦍 2 Players", perTeam: "Gorillas per team", cpuAim: "Computer's aim",
+    d1: "Wobbly", d2: "Normal", d3: "Deadly", play: "PLAY!",
+    touchHelp: '👆 <b>Pull your finger back</b> like a slingshot: the shot flies the opposite way, and the farther you pull, the stronger it is. <b>Release</b> to throw.<br>◀ ▶ walk &nbsp; ⤴ jump &nbsp; 🔄 switch weapon &nbsp; 🔍 zoom<br>Watch the wind! Fall in the water and… you\'re done. 🌊',
+    kbHelp: '<kbd>←</kbd><kbd>→</kbd> walk &nbsp; <kbd>↑</kbd><kbd>↓</kbd> aim &nbsp; <kbd>Enter</kbd> jump<br><kbd>Space</kbd> hold to charge, release to throw &nbsp; <kbd>Tab</kbd> switch weapon<br>You can also aim by pulling the mouse back like a slingshot.<br>Watch the wind! Fall in the water and… you\'re done. 🌊',
+    quitQ: "Leave the match?", quitSub: "This match's progress will be lost.", resume: "Keep playing", leave: "Back to menu",
+    again: "Play again!", menu: "Menu", quitBtn: "✕ Quit", sound: "Sound (M)", quitTitle: "Quit (Esc)",
+    team0: "Hairies", team1: "Stinkies",
+    turn: "{n}'s turn!", time: "Time's up!", glub: "Glub glub!", stuck: "Stuck!", free: "Free!", stuckHalf: "Stuck: half power!",
+    draw: "Stinky draw!", drawSub: "Nobody survived the smell.", win: "The {t} win!",
+    winCpu: "The computer throws poop better than you. Revenge?", winPvp: "Kings and queens of the jungle. And of poop.",
+    wind: "WIND", tabSwap: "Tab: switch", kbHint: "← → walk · ↑ ↓ aim · Space throw · Enter jump",
+    touchHintS: "👆 Pull back and release", touchHintL: "👆 Pull back like a slingshot · release to throw",
+    w_bosta: "Poop", w_tripla: "Triple Poop", w_mega: "Mega Poop", w_grude: "Sticky Poop",
+  },
+  de: {
+    title: "Gorillas", sub: "Rundenbasierte Primaten-Artillerie. Zielen, aufladen, werfen!", mode: "Modus",
+    vsCpu: "🦍 vs 🤖 Computer", pvp: "🦍 vs 🦍 2 Spieler", perTeam: "Gorillas pro Team", cpuAim: "Treffsicherheit des Computers",
+    d1: "Wackelig", d2: "Normal", d3: "Treffsicher", play: "SPIELEN!",
+    touchHelp: '👆 <b>Zieh den Finger zurück</b> wie bei einer Steinschleuder: Der Wurf fliegt in die Gegenrichtung, und je weiter du ziehst, desto stärker. <b>Loslassen</b> zum Werfen.<br>◀ ▶ laufen &nbsp; ⤴ springen &nbsp; 🔄 Waffe wechseln &nbsp; 🔍 Zoom<br>Achte auf den Wind! Wer ins Wasser fällt… ist raus. 🌊',
+    kbHelp: '<kbd>←</kbd><kbd>→</kbd> laufen &nbsp; <kbd>↑</kbd><kbd>↓</kbd> zielen &nbsp; <kbd>Enter</kbd> springen<br><kbd>Leertaste</kbd> halten zum Aufladen, loslassen zum Werfen &nbsp; <kbd>Tab</kbd> Waffe wechseln<br>Du kannst auch zielen, indem du die Maus wie eine Steinschleuder zurückziehst.<br>Achte auf den Wind! Wer ins Wasser fällt… ist raus. 🌊',
+    quitQ: "Spiel verlassen?", quitSub: "Der Fortschritt dieses Spiels geht verloren.", resume: "Weiterspielen", leave: "Zurück zum Menü",
+    again: "Nochmal!", menu: "Menü", quitBtn: "✕ Beenden", sound: "Ton (M)", quitTitle: "Beenden (Esc)",
+    team0: "Zottel", team1: "Stinker",
+    turn: "{n} ist dran!", time: "Zeit um!", glub: "Blubb blubb!", stuck: "Festgeklebt!", free: "Frei!", stuckHalf: "Festgeklebt: halbe Kraft!",
+    draw: "Stinkendes Unentschieden!", drawSub: "Niemand hat den Gestank überlebt.", win: "Die {t} gewinnen!",
+    winCpu: "Der Computer wirft besser mit Kacke. Revanche?", winPvp: "Könige und Königinnen des Dschungels. Und der Kacke.",
+    wind: "WIND", tabSwap: "Tab: wechseln", kbHint: "← → laufen · ↑ ↓ zielen · Leertaste werfen · Enter springen",
+    touchHintS: "👆 Zurückziehen und loslassen", touchHintL: "👆 Wie eine Steinschleuder zurückziehen · loslassen zum Werfen",
+    w_bosta: "Kacke", w_tripla: "Dreifach-Kacke", w_mega: "Mega-Kacke", w_grude: "Klebe-Kacke",
+  },
+};
+let lang = "pt";
+try {
+  const sv = localStorage.getItem("gorilas-lang");
+  if (STR[sv]) lang = sv;
+  else { const nl = (navigator.language || "").toLowerCase(); lang = nl.startsWith("de") ? "de" : nl.startsWith("en") ? "en" : "pt"; }
+} catch (e) {}
+function t(k, v) { let x = (STR[lang] && STR[lang][k]) || STR.pt[k] || k; if (v) for (const n in v) x = x.replace("{" + n + "}", v[n]); return x; }
+const tr = t;
+function tn(T) { return t(T.key); }
+function applyLang() {
+  document.documentElement.lang = { pt: "pt-BR", en: "en", de: "de" }[lang];
+  document.title = t("title");
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.innerHTML = t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-title]").forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  document.querySelectorAll("h1.title").forEach(el => el.setAttribute("aria-label", t("title")));
+  document.querySelectorAll("#langRow button").forEach(b => b.classList.toggle("sel", b.dataset.lang === lang));
+}
+document.querySelectorAll("#langRow button").forEach(b => b.addEventListener("click", e => {
+  lang = b.dataset.lang;
+  try { localStorage.setItem("gorilas-lang", lang); } catch (_) {}
+  applyLang(); e.currentTarget.blur();
+}));
+applyLang();
+
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -472,7 +552,7 @@ function land(g) {
 function drown(g) {
   g.gone = true; g.dead = true; g.hp = 0;
   splash(g.x, WATER, 26);
-  addText(g.x, WATER - 40, "Glub glub!", "#fff");
+  addText(g.x, WATER - 40, t("glub"), "#fff");
   sndPlop();
 }
 function hurt(g, d) {
@@ -494,7 +574,7 @@ function tryStep(g, dir) {
   return false;
 }
 function stuckMsg(g) {
-  if (time - (g.stuckMsgT || -9) > 1.2) { g.stuckMsgT = time; addText(g.x, g.y - 62, "Grudado!", "#c9b84a"); }
+  if (time - (g.stuckMsgT || -9) > 1.2) { g.stuckMsgT = time; addText(g.x, g.y - 62, t("stuck"), "#c9b84a"); }
 }
 function walk(g, dir, dt) {
   g.face = dir;
@@ -577,7 +657,7 @@ function explode(x, y, type) {
         g.goo = [];
         for (let i = 0; i < 9; i++) g.goo.push({ x: rand(-11, 11), y: rand(-34, -4), r: rand(2, 4.5) });
         g.vx = 0; g.vy = 0; g.rx = 0; g.ry = 0;
-        addText(g.x, g.y - 66, "Grudado!", "#c9b84a");
+        addText(g.x, g.y - 66, t("stuck"), "#c9b84a");
         continue;
       }
       if (g.stuck > 0) continue;
@@ -615,7 +695,7 @@ function nextTurn() {
   if (at.length < 2) { gameOver(at.length ? at[0] : -1); return; }
   for (const g of gorillas) if (g.team === curTeam && g.stuck > 0) {
     g.stuck--;
-    if (!g.stuck && !g.dead) { addText(g.x, g.y - 62, "Livre!", "#fff"); g.goo = []; }
+    if (!g.stuck && !g.dead) { addText(g.x, g.y - 62, t("free"), "#fff"); g.goo = []; }
   }
   camFocus = null;
   curTeam = 1 - curTeam;
@@ -624,8 +704,8 @@ function nextTurn() {
   active = list[T.idx];
   wind = Math.round(rand(-1, 1) * WINDMAX);
   turnTime = TURN; state = "aim"; weapon = "bosta"; charging = false; power = 0;
-  banner = { text: `Vez de ${active.name}!`, color: T.color, t: 0 };
-  if (active.stuck > 0) setTimeout(() => { if (active && active.stuck > 0 && state === "aim") addText(active.x, active.y - 70, "Grudado: metade da força!", "#c9b84a"); }, 600);
+  banner = { text: t("turn", { n: active.name }), color: T.color, t: 0 };
+  if (active.stuck > 0) setTimeout(() => { if (active && active.stuck > 0 && state === "aim") addText(active.x, active.y - 70, t("stuckHalf"), "#c9b84a"); }, 600);
   ai = T.cpu ? { phase: "think", t: 0 } : null;
 }
 function processDeaths() {
@@ -654,12 +734,12 @@ function gameOver(team) {
   setTimeout(() => {
     if (id !== matchId) return;
     const t = document.getElementById("overTitle"), s = document.getElementById("overSub");
-    if (team < 0) { t.textContent = "Empate fedorento!"; s.textContent = "Ninguém sobreviveu ao cheiro."; }
+    if (team < 0) { t.textContent = tr("draw"); s.textContent = tr("drawSub"); }
     else {
       const T = teams[team];
-      t.textContent = `Os ${T.name} venceram!`;
+      t.textContent = tr("win", { t: tn(T) });
       t.style.color = T.color;
-      s.textContent = T.cpu ? "O computador mira melhor com bosta. Bora se vingar?" : "Reis e rainhas da selva. E da bosta.";
+      s.textContent = T.cpu ? tr("winCpu") : tr("winPvp");
     }
     document.getElementById("over").classList.remove("hidden");
   }, lose ? 3700 : 1300);
@@ -842,7 +922,7 @@ function update(dt) {
     const g = active;
     turnTime -= dt;
     if (g.gone || g.dead) { charging = false; drag = null; state = "settle"; settleT = 0; }
-    else if (turnTime <= 0) { charging = false; drag = null; addText(g.x, g.y - 60, "Tempo!", "#fff"); state = "settle"; settleT = 0; }
+    else if (turnTime <= 0) { charging = false; drag = null; addText(g.x, g.y - 60, t("time"), "#fff"); state = "settle"; settleT = 0; }
     else {
       if (!teams[g.team].cpu) {
         if (!charging) {
@@ -1160,14 +1240,14 @@ function drawHUD() {
   if (active) {
     const T = teams[active.team];
     ctx.fillStyle = T.color; ctx.font = "800 15px Nunito, sans-serif"; ctx.textAlign = "left";
-    ctx.fillText(`${active.name} · ${T.name}${T.cpu ? " 🤖" : ""}`, mid - 136, 30);
+    ctx.fillText(`${active.name} · ${tn(T)}${T.cpu ? " 🤖" : ""}`, mid - 136, 30);
     ctx.textAlign = "right"; ctx.fillStyle = turnTime < 10 && state === "aim" ? "#d62f2f" : "#3b2612";
     ctx.font = "22px 'Luckiest Guy', Impact, 'Arial Black', sans-serif";
     ctx.fillText(state === "aim" ? Math.ceil(turnTime) : "…", mid + 136, 33);
   }
   // vento
   ctx.fillStyle = "#3b2612"; ctx.font = "800 11px Nunito, sans-serif"; ctx.textAlign = "left";
-  ctx.fillText("VENTO", mid - 136, 56);
+  ctx.fillText(t("wind"), mid - 136, 56);
   const bx = mid - 85, bw = 220;
   ctx.fillStyle = "#e7d7bd"; roundRect(bx, 47, bw, 12, 6); ctx.fill();
   const wf = wind / WINDMAX, wc = bx + bw / 2;
@@ -1190,7 +1270,7 @@ function drawHUD() {
     ctx.fillStyle = T.color; roundRect(mid - 108, y + 2, 216 * clamp(hp / T.maxHp, 0, 1), 9, 5); ctx.fill();
     ctx.font = "800 11px Nunito, sans-serif"; ctx.textAlign = "right"; ctx.fillStyle = "#fff";
     ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.5)";
-    ctx.strokeText(T.name, mid - 116, y + 11); ctx.fillText(T.name, mid - 116, y + 11);
+    ctx.strokeText(tn(T), mid - 116, y + 11); ctx.fillText(tn(T), mid - 116, y + 11);
   });
 
   // arma
@@ -1200,20 +1280,20 @@ function drawHUD() {
     ctx.fillStyle = "rgba(255,248,236,.92)"; ctx.strokeStyle = "#5b3a1e"; ctx.lineWidth = 3;
     roundRect(10, wy, 200, 44, 12); ctx.fill(); ctx.stroke();
     ctx.textAlign = "left"; ctx.fillStyle = "#3b2612";
-    ctx.font = "800 15px Nunito, sans-serif"; ctx.fillText(`${w.icon} ${w.name}`, 20, wy + 20);
+    ctx.font = "800 15px Nunito, sans-serif"; ctx.fillText(`${w.icon} ${t("w_" + weapon)}`, 20, wy + 20);
     ctx.font = "600 11px Nunito, sans-serif";
-    ctx.fillText(`${am === Infinity ? "∞" : "x" + am}${isTouch ? "" : "   ·   Tab: trocar"}`, 20, wy + 36);
+    ctx.fillText(`${am === Infinity ? "∞" : "x" + am}${isTouch ? "" : "   ·   " + t("tabSwap")}`, 20, wy + 36);
   }
   if (!isTouch && state !== "over") {
     ctx.textAlign = "right"; ctx.font = "600 12px Nunito, sans-serif"; ctx.fillStyle = "rgba(40,25,10,.75)";
-    ctx.fillText("← → andar · ↑ ↓ mirar · Espaço atirar · Enter pular", vw - 14, vh - 14);
+    ctx.fillText(t("kbHint"), vw - 14, vh - 14);
   }
 
   // dica de toque
   if (isTouch && isHumanTurn() && !drag && turnTime > TURN - 8) {
     ctx.textAlign = "center"; ctx.font = "800 13px Nunito, sans-serif";
     ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0,0,0,.55)"; ctx.fillStyle = "#fff";
-    const ht = cw < 640 ? "👆 Puxe para trás e solte" : "👆 Puxe para trás como um estilingue · solte para atirar";
+    const ht = cw < 640 ? t("touchHintS") : t("touchHintL");
     const hy = vh - 56 - (cw < 640 ? 84 / s : 0); ctx.strokeText(ht, mid, hy); ctx.fillText(ht, mid, hy);
   }
   // anúncio de vez
