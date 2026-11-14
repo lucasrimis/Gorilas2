@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Gorilas</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#6b3e1f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gorilas">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
 <style>
@@ -182,6 +190,8 @@
       </div>
     </div>
     <button class="big" id="startBtn" data-i18n="play">JOGAR!</button>
+    <div class="row" id="installRow" style="display:none"><button id="installBtn" data-i18n="install">📲 Instalar o jogo</button></div>
+    <p class="help" id="iosHint" style="display:none" data-i18n="iosHint"></p>
     <div class="help touchHelp" data-i18n="touchHelp">
       👆 <b>Puxe o dedo para trás</b>, como um estilingue: o tiro sai para o lado oposto e quanto mais puxar, mais força. <b>Solte</b> para atirar.<br>
       ◀ ▶ andar &nbsp; ⤴ pular &nbsp; 🔄 trocar arma &nbsp; 🔍 zoom<br>
@@ -272,6 +282,7 @@ const STR = {
     wind: "VENTO", tabSwap: "Tab: trocar", kbHint: "← → andar · ↑ ↓ mirar · Espaço atirar · Enter pular",
     touchHintS: "👆 Puxe para trás e solte", touchHintL: "👆 Puxe para trás como um estilingue · solte para atirar",
     w_bosta: "Bosta", w_tripla: "Bosta Tripla", w_mega: "Mega Bosta", w_grude: "Bosta Grudenta",
+    install: "📲 Instalar o jogo", iosHint: "📲 Para instalar: toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>.",
   },
   en: {
     title: "Gorillas", sub: "Turn-based primate artillery. Aim, charge and fling!", mode: "Mode",
@@ -288,6 +299,7 @@ const STR = {
     wind: "WIND", tabSwap: "Tab: switch", kbHint: "← → walk · ↑ ↓ aim · Space throw · Enter jump",
     touchHintS: "👆 Pull back and release", touchHintL: "👆 Pull back like a slingshot · release to throw",
     w_bosta: "Poop", w_tripla: "Triple Poop", w_mega: "Mega Poop", w_grude: "Sticky Poop",
+    install: "📲 Install the game", iosHint: "📲 To install: tap <b>Share</b>, then <b>Add to Home Screen</b>.",
   },
   de: {
     title: "Gorillas", sub: "Rundenbasierte Primaten-Artillerie. Zielen, aufladen, werfen!", mode: "Modus",
@@ -304,6 +316,7 @@ const STR = {
     wind: "WIND", tabSwap: "Tab: wechseln", kbHint: "← → laufen · ↑ ↓ zielen · Leertaste werfen · Enter springen",
     touchHintS: "👆 Zurückziehen und loslassen", touchHintL: "👆 Wie eine Steinschleuder zurückziehen · loslassen zum Werfen",
     w_bosta: "Kacke", w_tripla: "Dreifach-Kacke", w_mega: "Mega-Kacke", w_grude: "Klebe-Kacke",
+    install: "📲 Spiel installieren", iosHint: "📲 Zum Installieren: Tippe auf <b>Teilen</b> und dann auf <b>Zum Home-Bildschirm</b>.",
   },
 };
 let lang = "pt";
@@ -1571,6 +1584,28 @@ requestAnimationFrame(frame);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+})();
+
+// ---------- App instalável (PWA) ----------
+(() => {
+  const online = location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  if (online && "serviceWorker" in navigator) {
+    try { navigator.serviceWorker.register("sw.js").catch(() => {}); } catch (e) {}
+  }
+  const standalone = (window.matchMedia && matchMedia("(display-mode: fullscreen), (display-mode: standalone)").matches) || navigator.standalone;
+  if (standalone || !online) return;
+  let deferred = null;
+  const row = document.getElementById("installRow"), btn = document.getElementById("installBtn");
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferred = e; row.style.display = ""; });
+  btn.addEventListener("click", async () => {
+    if (!deferred) return;
+    deferred.prompt();
+    try { await deferred.userChoice; } catch (e) {}
+    deferred = null; row.style.display = "none";
+  });
+  window.addEventListener("appinstalled", () => { row.style.display = "none"; });
+  // iPhone/iPad não mostram o botão: explica como fazer
+  if (/iphone|ipad|ipod/i.test(navigator.userAgent)) document.getElementById("iosHint").style.display = "block";
 })();
 </script>
 </body>
