@@ -49,6 +49,10 @@
   #mute{position:fixed;top:10px;right:10px;z-index:5;padding:4px 10px;font-size:18px}
   #quit{position:fixed;top:10px;right:66px;z-index:5;padding:4px 12px;font-size:15px}
   #quitDlg{z-index:30}
+  #emoteBtn{position:fixed;left:10px;top:10px;z-index:6;padding:4px 10px;font-size:18px}
+  #emoteWheel{position:fixed;left:10px;top:54px;z-index:7;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;background:#fff8ec;border:3px solid #5b3a1e;border-radius:14px;padding:8px;width:280px;max-width:calc(100vw - 20px);box-shadow:0 6px 0 #5b3a1e}
+  #emoteWheel.hidden{display:none}
+  #emoteWheel button{font-size:13px;padding:8px 6px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .inp{font-family:inherit;font-weight:800;font-size:18px;border:3px solid #5b3a1e;border-radius:12px;padding:8px 12px;width:220px;max-width:100%;background:#fff;color:#3b2612;text-align:center}
   .inp.code{width:150px;letter-spacing:4px;text-transform:uppercase}
   .roomcode{font-family:'Luckiest Guy', Impact, sans-serif;font-size:44px;letter-spacing:8px;color:#6b3e1f;margin:4px 0}
@@ -98,6 +102,15 @@
 <canvas id="splat" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:20"></canvas>
 <button id="mute" title="Som (M)" data-i18n-title="sound">🔊</button>
 <button id="zoom" title="Zoom">🔍</button>
+<button id="emoteBtn" class="hidden" title="Emotes (1-6)">💬</button>
+<div id="emoteWheel" class="hidden">
+  <button data-e="beat">🦍 <span data-i18n="emo_beat">Bater no peito</span></button>
+  <button data-e="laugh">😂 <span data-i18n="emo_laugh">Gargalhar</span></button>
+  <button data-e="butt">🍑 <span data-i18n="emo_butt">Mostrar a bunda</span></button>
+  <button data-e="dance">💃 <span data-i18n="emo_dance">Dançar</span></button>
+  <button data-e="come">👉 <span data-i18n="emo_come">Vem!</span></button>
+  <button data-e="sniff">🤢 <span data-i18n="emo_sniff">Cheirar a mão</span></button>
+</div>
 <button id="quit" class="hidden" title="Sair (Esc)" data-i18n-title="quitTitle" data-i18n="quitBtn">✕ Sair</button>
 <div id="quitDlg" class="overlay hidden">
   <div class="panel" style="max-width:380px">
@@ -289,7 +302,7 @@ const STR = {
     wind: "VENTO", tabSwap: "Tab: trocar", kbHint: "← → andar · ↑ ↓ mirar · Espaço atirar · Enter pular",
     touchHintS: "👆 Puxe para trás e solte", touchHintL: "👆 Puxe para trás como um estilingue · solte para atirar",
     playOnline: "🌐 Jogar online", onlineTitle: "🌐 Jogar online", yourName: "Seu nome", createRoom: "Criar sala", orJoin: "Ou entre numa sala com o código", join: "Entrar", onlineNote: "Cada jogador controla um gorila. A sala tem uma vaga por gorila (de 2 a 6 jogadores, conforme os gorilas por time); os gorilas sem jogador viram bots.", roomCode: "Código da sala", shareCode: "Mande este código para os seus amigos.", joinTeam: "Entrar neste time", startMatch: "COMEÇAR!", back: "Voltar", waitHost: "Esperando o anfitrião começar…", connecting: "Conectando…", notFound: "Sala não encontrada. Confira o código.", roomFull: "A sala está cheia ({n} jogadores no máximo).", alreadyStarted: "A partida dessa sala já começou.", hostLeft: "O anfitrião saiu da sala.", netErr: "Não foi possível conectar. Verifique a internet e tente de novo.", netLoadErr: "Não foi possível carregar o modo online. Verifique a internet.", codeInvalid: "O código tem 6 letras.", needBoth: "Precisa de pelo menos 2 jogadores na sala.", canStart: "{n} jogador(es) na sala. As vagas vazias serão bots. Pode começar!", you: "você", player: "Jogador", yourTurn: "Sua vez, {n}!", playerLeft: "{n} saiu da partida",
-    botSlot: "bot", capacity: "Jogadores: {a}/{b}", tooManyForN: "Um time tem mais de {n} jogadores. Mude alguém de time primeiro.", w_bosta: "Bosta", w_tripla: "Bosta Tripla", w_mega: "Mega Bosta", w_grude: "Bosta Grudenta", w_balao: "Bosta-Balão", bonus: "+1 BOSTA-BALÃO!",
+    botSlot: "bot", capacity: "Jogadores: {a}/{b}", tooManyForN: "Um time tem mais de {n} jogadores. Mude alguém de time primeiro.", emo_beat: "Bater no peito", emo_laugh: "Gargalhar", emo_butt: "Mostrar a bunda", emo_dance: "Dançar", emo_come: "Vem!", emo_sniff: "Cheirar a mão", emoTxt_beat: "TUM TUM!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Toma!", emoTxt_dance: "♪ ♫", emoTxt_come: "Vem!", emoTxt_sniff: "Ugh…", w_bosta: "Bosta", w_tripla: "Bosta Tripla", w_mega: "Mega Bosta", w_grude: "Bosta Grudenta", w_balao: "Bosta-Balão", bonus: "+1 BOSTA-BALÃO!",
     install: "📲 Instalar o jogo", iosHint: "📲 Para instalar: toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>.",
   },
   en: {
@@ -307,7 +320,7 @@ const STR = {
     wind: "WIND", tabSwap: "Tab: switch", kbHint: "← → walk · ↑ ↓ aim · Space throw · Enter jump",
     touchHintS: "👆 Pull back and release", touchHintL: "👆 Pull back like a slingshot · release to throw",
     playOnline: "🌐 Play online", onlineTitle: "🌐 Play online", yourName: "Your name", createRoom: "Create room", orJoin: "Or join a room with its code", join: "Join", onlineNote: "Each player controls one gorilla. The room has one spot per gorilla (2 to 6 players, depending on gorillas per team); gorillas without a player become bots.", roomCode: "Room code", shareCode: "Send this code to your friends.", joinTeam: "Join this team", startMatch: "START!", back: "Back", waitHost: "Waiting for the host to start…", connecting: "Connecting…", notFound: "Room not found. Check the code.", roomFull: "The room is full ({n} players max).", alreadyStarted: "That room's match has already started.", hostLeft: "The host left the room.", netErr: "Couldn't connect. Check your internet and try again.", netLoadErr: "Couldn't load online mode. Check your internet.", codeInvalid: "The code has 6 letters.", needBoth: "You need at least 2 players in the room.", canStart: "{n} player(s) in the room. Empty spots will be bots. Ready to start!", you: "you", player: "Player", yourTurn: "Your turn, {n}!", playerLeft: "{n} left the match",
-    botSlot: "bot", capacity: "Players: {a}/{b}", tooManyForN: "A team has more than {n} players. Move someone to the other team first.", w_bosta: "Poop", w_tripla: "Triple Poop", w_mega: "Mega Poop", w_grude: "Sticky Poop", w_balao: "Balloon Poop", bonus: "+1 BALLOON POOP!",
+    botSlot: "bot", capacity: "Players: {a}/{b}", tooManyForN: "A team has more than {n} players. Move someone to the other team first.", emo_beat: "Chest beat", emo_laugh: "Laugh", emo_butt: "Moon", emo_dance: "Dance", emo_come: "Come here!", emo_sniff: "Sniff hand", emoTxt_beat: "THUMP THUMP!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Take that!", emoTxt_dance: "♪ ♫", emoTxt_come: "Come here!", emoTxt_sniff: "Ugh…", w_bosta: "Poop", w_tripla: "Triple Poop", w_mega: "Mega Poop", w_grude: "Sticky Poop", w_balao: "Balloon Poop", bonus: "+1 BALLOON POOP!",
     install: "📲 Install the game", iosHint: "📲 To install: tap <b>Share</b>, then <b>Add to Home Screen</b>.",
   },
   de: {
@@ -325,7 +338,7 @@ const STR = {
     wind: "WIND", tabSwap: "Tab: wechseln", kbHint: "← → laufen · ↑ ↓ zielen · Leertaste werfen · Enter springen",
     touchHintS: "👆 Zurückziehen und loslassen", touchHintL: "👆 Wie eine Steinschleuder zurückziehen · loslassen zum Werfen",
     playOnline: "🌐 Online spielen", onlineTitle: "🌐 Online spielen", yourName: "Dein Name", createRoom: "Raum erstellen", orJoin: "Oder tritt mit dem Code einem Raum bei", join: "Beitreten", onlineNote: "Jeder Spieler steuert einen Gorilla. Der Raum hat einen Platz pro Gorilla (2 bis 6 Spieler, je nach Gorillas pro Team); Gorillas ohne Spieler werden Bots.", roomCode: "Raumcode", shareCode: "Schick diesen Code an deine Freunde.", joinTeam: "Diesem Team beitreten", startMatch: "LOS!", back: "Zurück", waitHost: "Warte, bis der Gastgeber startet…", connecting: "Verbinde…", notFound: "Raum nicht gefunden. Prüfe den Code.", roomFull: "Der Raum ist voll (max. {n} Spieler).", alreadyStarted: "Das Spiel in diesem Raum hat schon begonnen.", hostLeft: "Der Gastgeber hat den Raum verlassen.", netErr: "Verbindung fehlgeschlagen. Prüfe dein Internet und versuch es nochmal.", netLoadErr: "Online-Modus konnte nicht geladen werden. Prüfe dein Internet.", codeInvalid: "Der Code hat 6 Buchstaben.", needBoth: "Es braucht mindestens 2 Spieler im Raum.", canStart: "{n} Spieler im Raum. Leere Plätze werden Bots. Es kann losgehen!", you: "du", player: "Spieler", yourTurn: "Du bist dran, {n}!", playerLeft: "{n} hat das Spiel verlassen",
-    botSlot: "Bot", capacity: "Spieler: {a}/{b}", tooManyForN: "Ein Team hat mehr als {n} Spieler. Verschiebe zuerst jemanden ins andere Team.", w_bosta: "Kacke", w_tripla: "Dreifach-Kacke", w_mega: "Mega-Kacke", w_grude: "Klebe-Kacke", w_balao: "Ballon-Kacke", bonus: "+1 BALLON-KACKE!",
+    botSlot: "Bot", capacity: "Spieler: {a}/{b}", tooManyForN: "Ein Team hat mehr als {n} Spieler. Verschiebe zuerst jemanden ins andere Team.", emo_beat: "Brust trommeln", emo_laugh: "Lachen", emo_butt: "Hintern zeigen", emo_dance: "Tanzen", emo_come: "Komm her!", emo_sniff: "Hand schnüffeln", emoTxt_beat: "BUMM BUMM!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Da hast du's!", emoTxt_dance: "♪ ♫", emoTxt_come: "Komm her!", emoTxt_sniff: "Igitt…", w_bosta: "Kacke", w_tripla: "Dreifach-Kacke", w_mega: "Mega-Kacke", w_grude: "Klebe-Kacke", w_balao: "Ballon-Kacke", bonus: "+1 BALLON-KACKE!",
     install: "📲 Spiel installieren", iosHint: "📲 Zum Installieren: Tippe auf <b>Teilen</b> und dann auf <b>Zum Home-Bildschirm</b>.",
   },
 };
@@ -818,6 +831,7 @@ function processDeaths() {
     for (const g of gorillas) if (!g.dead && g.team !== shooterTeam) { g.beatT = 1.4; g.beatSign = 0; }
     waitT = Math.max(waitT, 1.5);
   }
+  botEmotes();
   shooterTeam = null;
 }
 let matchId = 0;
@@ -1045,7 +1059,7 @@ function update(dt) {
     }
   }
 
-  balloonUpdate(dt); updateDrips(dt);
+  balloonUpdate(dt); updateDrips(dt); emoteTick(dt);
   for (const g of gorillas) { if (g.lookUpT > 0) g.lookUpT -= dt; if (!balloonEvt && g.cover > 0) g.cover = Math.max(0, g.cover - dt / 6); }
   for (const p of projectiles.slice()) {
     const r = projStep(p, dt);
@@ -1121,6 +1135,7 @@ function drawGorilla(g) {
   drawRig(g, RP.P, RP.face);
 
   if (g.stuck > 0) drawGoo(g);
+  drawEmoteBubble(g);
 
   // nome e vida
   const ty = g.y - 50;
@@ -1284,6 +1299,8 @@ function rHead(P, band) {
   ctx.strokeStyle = "#3a2c25"; ctx.lineWidth = 1.3;
   if (P.mouth === "o") ell(7.5, 7.6, 1.6, 2);
   else if (P.mouth === "laugh") { ctx.fillStyle = "#3a1414"; ctx.beginPath(); ctx.arc(7, 5.4, 3, 0, Math.PI); ctx.fill(); ctx.fillStyle = "#fff"; ctx.fillRect(4.6, 5.4, 4.8, 1); }
+  else if (P.mouth === "tongue") { ctx.beginPath(); ctx.moveTo(4, 7.2); ctx.lineTo(10.5, 7.2); ctx.stroke(); ctx.fillStyle = "#e07a8a"; ell(8.5, 9.4, 1.9, 2.6); }
+  else if (P.mouth === "wavy") { ctx.beginPath(); ctx.moveTo(3.5, 8); ctx.quadraticCurveTo(5, 6.6, 6.5, 8); ctx.quadraticCurveTo(8, 9.4, 9.5, 8); ctx.stroke(); }
   else if (P.mouth === "grit") { ctx.fillStyle = "#fff"; ctx.fillRect(3.6, 6, 7, 2.4); ctx.lineWidth = .6; for (let i = 4.8; i < 10.6; i += 1.4) { ctx.beginPath(); ctx.moveTo(i, 6); ctx.lineTo(i, 8.4); ctx.stroke(); } ctx.lineWidth = 1; ctx.strokeRect(3.6, 6, 7, 2.4); }
   else { ctx.beginPath(); ctx.arc(7, 5.6, 2.4, .35, Math.PI - .35); ctx.stroke(); }
   ctx.fillStyle = band; ctx.fillRect(-11, -10, 21, 3.8);
@@ -1328,6 +1345,8 @@ function rigPose(g, isActive, air) {
   else if (time - (g.lastWalk || -9) < 0.15) P = rWalk(g);
   else P = rIdle(g);
   if (g.lookUpT > 0 && !(g.hitT > 0)) { P.hr = -.95; P.look = 0; P.eyes = "wide"; }
+  if (g.emote && !air && !busy && !(isActive)) { const E = emotePose(g); P = E.P; face = E.face; }
+  else emoteReaction(g, P);
   if (g.buttK > 0 && !air && !busy) {
     const ex = isActive && charging ? power : 0;
     P = rBlend(rIdle(g), rButt(g.aim, ex, ex), g.buttK);
@@ -1342,6 +1361,7 @@ function drawRig(g, P, face) {
   const band = g.bandColor || teams[g.team].color, a = P.torso, dir = [Math.sin(a), -Math.cos(a)], hip = P.hip, br = Math.sin(time * 2.3 + g.ph), rk = g.rk || RK;
   ctx.save(); ctx.translate(g.x, g.y);
   if (g.hurtT > 0 && !(g.hitT > 0)) ctx.translate(Math.sin(time * 70) * 1.2, 0);
+  if (P.dx || P.dy) ctx.translate((P.dx || 0), (P.dy || 0));
   ctx.scale(rk * face, rk); if (P.rot) ctx.rotate(P.rot);
   const chest = [hip[0] + dir[0] * 27, hip[1] + dir[1] * 27], perp = [-dir[1], dir[0]];
   const shF = [chest[0] - perp[0] * 2 - dir[0] * 2, chest[1] - perp[1] * 2 - dir[1] * 2], shB = [chest[0] - perp[0] * 3 - dir[0] * 3, chest[1] - perp[1] * 3 - dir[1] * 3];
@@ -1375,7 +1395,8 @@ function drawRig(g, P, face) {
   const hF = [hip[0] + 3, hip[1] + 2], lF = rIK(hF, P.footF, 13, 13, P.kneeF || -1); rLimb(hF, lF.e, lF.h, FUR, 9.5); ctx.fillStyle = FUR; ell(lF.h[0] + 2, lF.h[1] - 1, 5.8, 3.4);
   const neck = [chest[0] + dir[0] * 7, chest[1] + dir[1] * 7], hc = [neck[0], neck[1] - 6];
   ctx.save(); ctx.translate(hc[0], hc[1]); ctx.rotate((P.headUpside ? Math.PI : 0) + (P.hr || 0)); rHead(P, band); ctx.restore();
-  const aF = rIK(shF, P.handF, 16, 16, P.bendF || 1); rLimb(shF, aF.e, aF.h, FUR, 9); ctx.fillStyle = FUR; ell(aF.h[0], aF.h[1], 4.6, 4.2); ctx.fillStyle = "#4a3a32"; ell(aF.h[0] + 1, aF.h[1] + 1, 2.2, 1.8);
+  const aF = rIK(shF, P.handF, 16, 16, P.bendF || 1); rLimb(shF, aF.e, aF.h, FUR, 9); ctx.fillStyle = FUR; ell(aF.h[0], aF.h[1], 4.6, 4.2);
+  if (P.finger !== undefined) { ctx.save(); ctx.translate(aF.h[0], aF.h[1]); ctx.rotate(P.finger); ell(5, 0, 3.6, 1.6); ctx.restore(); ctx.fillStyle = FUR; } ctx.fillStyle = "#4a3a32"; ell(aF.h[0] + 1, aF.h[1] + 1, 2.2, 1.8);
   if (P.beat && Math.abs(P.beat) > .7) { ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 1.5 / rk; for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.arc(chest[0] + 12, chest[1] + 6, 7 + i * 5, -.6, .6); ctx.stroke(); } }
   ctx.restore();
 }
@@ -1526,6 +1547,7 @@ function hostOnData(pid, m) {
     const p = net.players.find(p => p.id === pid), tm = m.team ? 1 : 0;
     if (p && !net.started && p.team !== tm && teamCount(tm) < net.n) { p.team = tm; hostBroadcastLobby(); }
   } else if (m.t === "in") hostOnInput(pid, m);
+  else if (m.t === "emote") hostOnEmote(pid, m.e);
 }
 function hostOnLeave(pid) {
   if (!net) return;
@@ -1661,7 +1683,8 @@ function snapG(g) {
   return [r1(g.x), r1(g.y), g.face, r1(g.aim), r1(g.hp), (g.dead ? 1 : 0) | (g.gone ? 2 : 0) | (time - (g.lastWalk || -9) < 0.15 ? 4 : 0),
     r1(g.vy), r2(g.walk), r2(g.crouchT), r2(g.landT), r2(g.landAmt), r2(g.staggerT), r2(g.hitT), r2(g.shakeT), r2(g.beatT), r2(g.throwT), r2(g.hurtT),
     g.stuck || 0, r2(g.spotT), r2(g.cover), r2(g.lookUpT), r2(g.blinkT),
-    g.spotT > 0 ? g.spots.map(s => [r1(s.x), r1(s.y), r1(s.r)]) : 0, g.stuck > 0 ? g.goo.map(s => [r1(s.x), r1(s.y), r1(s.r)]) : 0];
+    g.spotT > 0 ? g.spots.map(s => [r1(s.x), r1(s.y), r1(s.r)]) : 0, g.stuck > 0 ? g.goo.map(s => [r1(s.x), r1(s.y), r1(s.r)]) : 0,
+    g.emote ? EMOTES.indexOf(g.emote.type) : -1, g.emote ? r2(g.emote.t) : 0];
 }
 function hostSnapshot() {
   const e = balloonEvt;
@@ -1709,6 +1732,7 @@ function applySnapDiscrete(m) {
     g.staggerT = a[11]; g.hitT = a[12]; g.shakeT = a[13]; g.beatT = a[14]; g.hurtT = a[16]; g.stuck = a[17]; g.spotT = a[18]; g.cover = a[19]; g.lookUpT = a[20];
     if (a[22]) g.spots = a[22].map(s => ({ x: s[0], y: s[1], r: s[2] }));
     g.goo = a[23] ? a[23].map(s => ({ x: s[0], y: s[1], r: s[2] })) : [];
+    if (a[24] >= 0) { const ty = EMOTES[a[24]]; if (!g.emote || g.emote.type !== ty || Math.abs(g.emote.t - a[25]) > .3) g.emote = { type: ty, t: a[25] }; } else g.emote = null;
     if (mineNow && g.netInit) return; // o meu gorila na minha vez: quem manda é o meu celular
     if (!g.netInit) { g.x = a[0]; g.y = a[1]; g.netInit = true; }
     g.face = a[2]; g.aim = a[3]; g.lastWalk = (a[5] & 4) ? time : -9;
@@ -1786,7 +1810,7 @@ function clientUpdate(dt) {
     const r = projStep(p, dt); p.rot += (p.spin || 0) * dt;
     if (r) p.done = true;
   }
-  updateDrips(dt);
+  updateDrips(dt); emoteTick(dt);
   for (const c of clouds) { c.x += (wind * 0.12 + 6) * dt; if (c.x > W + 300) c.x = -300; if (c.x < -300) c.x = W + 300; }
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i]; p.t += dt;
@@ -1936,6 +1960,116 @@ function drawShiny() {
   for (let i = 0; i < 4; i++) { const a = time * 2 + i * 1.57; drawSpark(shiny.x + Math.cos(a) * 18, sy + Math.sin(a) * 18, 3 + Math.sin(time * 8 + i) * 1.2, "#fff7c0"); }
 }
 function drawSpark(px, py, r, c) { ctx.fillStyle = c; ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rr = i % 2 ? r * .38 : r; ctx.lineTo(px + Math.cos(a) * rr, py + Math.sin(a) * rr); } ctx.fill(); }
+
+// ---------- Emotes (provocações) ----------
+const EMOTES = ["beat", "laugh", "butt", "dance", "come", "sniff"];
+const EMO_DUR = { beat: 1.8, laugh: 2, butt: 2.4, dance: 2.6, come: 2, sniff: 2.6 };
+const EMO_ICON = { beat: "🦍", laugh: "😂", butt: "🍑", dance: "💃", come: "👉", sniff: "🤢" };
+let lastEmote = -9;
+function sndLaugh() {
+  netEvent({ s: "sndLaugh", a: [] });
+  if (!AC || muted) return;
+  for (let i = 0; i < 4; i++) {
+    const t0 = AC.currentTime + i * 0.13, o = AC.createOscillator(); o.type = "square";
+    o.frequency.setValueAtTime(330 - i * 25, t0); o.frequency.exponentialRampToValueAtTime(200 - i * 20, t0 + 0.1);
+    const f = AC.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 900;
+    const g = AC.createGain(); env(g, t0, 0.1, 0.11); o.connect(f); f.connect(g); g.connect(AC.destination); o.start(t0); o.stop(t0 + 0.12);
+  }
+}
+SND.sndLaugh = () => sndLaugh();
+function startEmote(g, type) {
+  if (!g || g.dead || g.gone || EMOTES.indexOf(type) < 0) return;
+  if (state === "aim" && g === active) return;
+  g.emote = { type, t: 0 }; g.beatT = 0;
+  if (type === "beat") sndThump(); else if (type === "laugh") sndLaugh(); else if (type === "butt") sndFart(false);
+}
+function myEmoteGorilla() {
+  const ok = g => !g.dead && !g.gone && !(state === "aim" && g === active);
+  if (online()) return gorillas.find(g => ok(g) && controllerOf(g) === net.id) || null;
+  let team = 0;
+  if (opts.mode === "pvp") team = active ? 1 - active.team : 0;
+  return gorillas.find(g => ok(g) && g.team === team) || null;
+}
+function canEmote() { return inMatch() && state !== "over" && !isHumanTurn() && time - lastEmote > 3 && !!myEmoteGorilla(); }
+function tryEmote(type) {
+  if (!canEmote()) return;
+  lastEmote = time; closeEmoteWheel();
+  if (isClientNet()) { net.tx.send("H", { t: "emote", e: type }); return; }
+  startEmote(myEmoteGorilla(), type);
+}
+function hostOnEmote(pid, type) {
+  net.emoCd = net.emoCd || {};
+  if (time - (net.emoCd[pid] || -9) < 2.5) return;
+  const g = gorillas.find(g => !g.dead && !g.gone && controllerOf(g) === pid && !(state === "aim" && g === active));
+  if (g) { net.emoCd[pid] = time; startEmote(g, type); }
+}
+function emoteTick(dt) { for (const g of gorillas) if (g.emote) { g.emote.t += dt; if (g.emote.t > EMO_DUR[g.emote.type] || g.dead) g.emote = null; } }
+// bots provocam: quando o adversário erra, ou comemoram quando acertam
+function botEmotes() {
+  if (shooterTeam === null) return;
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const bots = gorillas.filter(g => !g.dead && !g.gone && isBot(g));
+  if (!shotHit) { const eb = bots.filter(g => g.team !== shooterTeam); if (eb.length && Math.random() < 0.7) startEmote(pick(eb), pick(["laugh", "butt", "come", "dance"])); }
+  else { const mb = bots.filter(g => g.team === shooterTeam); if (mb.length && Math.random() < 0.6) startEmote(pick(mb), pick(["laugh", "dance", "beat"])); }
+}
+function rUpright() { return { hip: [0, -24], torso: .05, handF: [14, -6], handB: [-8, -6], footF: [4, 0], footB: [-6, 0], hr: -.2, bendF: -1, bendB: 1 }; }
+function emotePose(g) {
+  const e = g.emote, k = e.t, d = EMO_DUR[e.type], lpp = (p, q, s) => [p[0] + (q[0] - p[0]) * s, p[1] + (q[1] - p[1]) * s];
+  let P, face = g.face;
+  if (e.type === "beat") { const b = Math.sin(k * 20); P = { hip: [0, -24], torso: .05, handF: [13 + b * 4, -33], handB: [11 - b * 4, -35], footF: [4, 0], footB: [-6, 0], mouth: "o", hr: -.3, beat: b, bendF: -1, bendB: -1 }; }
+  else if (e.type === "laugh") { const s = Math.sin(k * 28); P = rUpright(); P.hr = -.55 + s * .06; P.mouth = "laugh"; P.eyes = "bliss"; P.handF = [16, -22 + s]; P.handB = [-6, -20]; P.rot = s * .03; if (k > .4 && k < 1.6) P.hip = [0, -24 + Math.abs(s)]; }
+  else if (e.type === "butt") {
+    const vis = Math.min(smooth(seg01(k, 0, .35)), 1 - smooth(seg01(k, d - .35, d)));
+    if (vis > .5) { const w = Math.sin(k * 16) * 3; P = { hip: [w * .3, -27], torso: 2.3, handF: [24, -1], handB: [19, -1], footF: [4, 0], footB: [-5, 0], butt: 1, headUpside: true, hr: .2, mouth: "tongue", eyes: "squint" }; face = -g.face; }
+    else P = rIdle(g);
+  }
+  else if (e.type === "dance") { const s = Math.sin(k * 9), c = Math.cos(k * 9); P = rUpright(); P.dx = s * 6; P.dy = -Math.abs(c) * 3.5; P.handF = [12 + s * 6, -58]; P.handB = [-4 + s * 6, -58]; P.rot = s * .12; P.hr = -.2 + s * .15; P.mouth = "o"; P.eyes = "bliss"; P.footF = [4 + s * 3, 0]; P.footB = [-6 + s * 3, -Math.max(0, c) * 4]; }
+  else if (e.type === "come") { const s = Math.sin(k * 12); P = rUpright(); P.handF = [28, -34]; P.finger = -.4 + s * .6; P.hr = -.1; P.eyes = "half"; P.look = 1; }
+  else if (e.type === "sniff") {
+    const k1 = smooth(seg01(k, 0, .5)); P = rUpright(); P.handF = lpp([14, -6], [24, -56], k1); P.hr = -.2 + .45 * k1;
+    if (k > .5 && k < 1.4) P.hr = .25 + Math.sin(k * 30) * .05;
+    if (k > 1.4) { P.hr = -.35; P.eyes = "squint"; P.mouth = "tongue"; P.handF = lpp([24, -56], [34, -20], smooth(seg01(k, 1.4, 1.7))); if (Math.random() < .15) particles.push({ kind: "stink", x: g.x + g.face * 16, y: g.y - 32, vx: rand(-8, 8), vy: -18, life: 1.2, t: 0, size: rand(3, 5), ph: rand(0, 6) }); }
+  }
+  return { P, face };
+}
+// reação de quem é provocado
+function emoteReaction(g, P) {
+  for (const o of gorillas) {
+    if (!o.emote || o.team === g.team || o.emote.t < .5) continue;
+    const ty = o.emote.type;
+    if (ty === "beat" || ty === "dance") { P.eyes = "wide"; P.mouth = "o"; }
+    else if (ty === "laugh" || ty === "butt") { P.eyes = "squint"; P.mouth = "wavy"; }
+    else if (ty === "come") { P.eyes = "wide"; P.rot = (P.rot || 0) + Math.sin(time * 10) * .04; }
+    else if (ty === "sniff") { P.mouth = "laugh"; P.eyes = "bliss"; }
+    return;
+  }
+}
+function drawEmoteBubble(g) {
+  if (!g.emote || g.dead) return;
+  const e = g.emote, d = EMO_DUR[e.type], a = Math.min(1, e.t * 4) * (1 - seg01(e.t, d - .3, d));
+  const txt = t("emoTxt_" + e.type), bx = g.x, by = g.y - 66;
+  ctx.save(); ctx.globalAlpha = a; ctx.font = "800 11px Nunito, sans-serif"; ctx.textAlign = "center";
+  const w = ctx.measureText(txt).width + 12;
+  ctx.fillStyle = "#fff"; ctx.strokeStyle = "#5b3a1e"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx - w / 2, by - 16, w, 17, 7); else ctx.rect(bx - w / 2, by - 16, w, 17); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(bx - 4, by + 1); ctx.lineTo(bx, by + 6); ctx.lineTo(bx + 4, by + 1); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = teams[g.team].color; ctx.fillText(txt, bx, by - 4);
+  if (e.type === "dance") { ctx.fillStyle = "#5b3a1e"; ctx.font = "700 13px sans-serif"; for (let i = 0; i < 2; i++) { const ph = (time * 1.3 + i * .5) % 1; ctx.globalAlpha = a * (1 - ph); ctx.fillText("♪", g.x + (i ? 14 : -14) + Math.sin(time * 6 + i) * 4, g.y - 40 - ph * 18); } }
+  ctx.restore();
+}
+// roda de emotes
+const emoteBtn = document.getElementById("emoteBtn"), emoteWheel = document.getElementById("emoteWheel");
+function closeEmoteWheel() { emoteWheel.classList.add("hidden"); }
+emoteBtn.addEventListener("click", e => { audioInit(); e.currentTarget.blur(); emoteWheel.classList.toggle("hidden"); });
+emoteWheel.querySelectorAll("button").forEach(b => b.addEventListener("click", e => { e.currentTarget.blur(); tryEmote(b.dataset.e); }));
+function emoteUI() {
+  const show = inMatch() && state !== "over" && !!myEmoteGorilla();
+  emoteBtn.classList.toggle("hidden", !show);
+  if (!show) closeEmoteWheel();
+  const ready = canEmote();
+  emoteBtn.style.opacity = ready ? 1 : .45;
+  emoteWheel.querySelectorAll("button").forEach(b => { b.style.opacity = ready ? 1 : .45; });
+}
 
 function drawButtPose(g, isActive) {
   const T = teams[g.team], a = g.aim * Math.PI / 180;
@@ -2201,6 +2335,7 @@ function frame(now) {
   else if (state !== "menu" && !paused) { acc += dt; while (acc >= STEP) { update(STEP); acc -= STEP; } }
   if (isHostNet() && online()) { net.snapT += dt; if (net.snapT >= 1 / 30) { net.snapT = 0; hostSnapshot(); } }
   quitBtn.classList.toggle("hidden", !inMatch() || paused);
+  emoteUI();
   if (isTouch) touchBar.classList.toggle("hidden", !inMatch() || paused);
   render();
   if (splat) drawSplat(now);
@@ -2263,6 +2398,7 @@ window.addEventListener("keydown", e => {
   else if (e.code === "Enter" || e.code === "KeyJ") { e.preventDefault(); doJump(); }
   else if (e.code === "Tab" || e.code === "KeyQ") { e.preventDefault(); cycleWeapon(); }
   else if (e.code === "KeyM") toggleMute();
+  else if (/^Digit[1-6]$/.test(e.code)) tryEmote(EMOTES[+e.code.slice(5) - 1]);
 });
 window.addEventListener("keyup", e => {
   if (KEYMAP[e.code]) { keys[KEYMAP[e.code]] = false; netKeys(); }
