@@ -798,7 +798,7 @@ function nextTurn() {
   for (let k = 0; k < list.length; k++) { T.idx = (T.idx + 1) % list.length; if (!list[T.idx].dead) break; }
   active = list[T.idx];
   wind = Math.round(rand(-1, 1) * WINDMAX);
-  turnTime = TURN; state = "aim"; weapon = "bosta"; charging = false; power = 0;
+  turnTime = TURN; state = "aim"; weapon = "bosta"; charging = false; power = 0; if (net) net.remoteDrag = false;
   banner = { text: t("turn", { n: active.name }), color: T.color, t: 0 };
   if (active.stuck > 0) setTimeout(() => { if (active && active.stuck > 0 && state === "aim") addText(active.x, active.y - 70, t("stuckHalf"), "#c9b84a"); }, 600);
   ai = T.cpu ? { phase: "think", t: 0 } : null;
@@ -1003,7 +1003,7 @@ function aiUpdate(dt) {
 // ---------- Update ----------
 let paused = false;
 function isHumanTurn() {
-  if (online()) return state === "aim" && !!active && controllerOf(active) === net.id;
+  if (online()) return state === "aim" && !!active && controllerOf(active) === net.id && !(isClientNet() && net.fired);
   return !paused && state === "aim" && active && !teams[active.team].cpu;
 }
 const quitBtn = document.getElementById("quit"), quitDlg = document.getElementById("quitDlg");
@@ -1598,7 +1598,7 @@ function hostStart() {
 }
 function clientStart(m) {
   opts.mode = "online"; opts.n = m.n;
-  net.players = m.players; net.assign = m.assign; net.started = true; net.lastActive = -1;
+  net.players = m.players; net.assign = m.assign; net.started = true; net.lastActive = -1; net.buf = []; net.cur = null; net.off = null; net.fired = false; net.pred = null;
   matchId++; shiny = null; balloonEvt = null; drips = []; clearSplat();
   projectiles = []; particles = []; texts = [];
   seededSetup(m.seed);
@@ -1606,26 +1606,47 @@ function clientStart(m) {
   state = "settle"; active = null; charging = false; power = 0;
 }
 // --- comandos do jogador remoto (no anfitrião) ---
+// Na vez de um jogador remoto, o celular dele move o próprio gorila e manda a posição; o anfitrião confia nela.
 function hostOnInput(pid, m) {
   if (state !== "aim" || !active || controllerOf(active) !== pid) return;
-  const c = m.c;
-  if (m.k) net.remoteKeys[pid] = m.k;
-  if (c === "charge" && !charging) { charging = true; power = 0; drag = null; net.remoteDrag = false; }
-  else if (c === "release" && charging && !net.remoteDrag) fire();
-  else if (c === "jump" && !charging) jump(active);
-  else if (c === "weapon" && !charging) doCycleWeapon();
-  else if (c === "drag" || c === "dragFire") {
-    active.face = m.f > 0 ? 1 : -1; active.aim = clamp(+m.a || 0, -80, 88); power = clamp(+m.p || 0, 0, 1);
-    charging = true; net.remoteDrag = true;
-    if (c === "dragFire") { if (power >= 0.05) fire(); else { charging = false; power = 0; net.remoteDrag = false; } }
-  } else if (c === "dragCancel") { charging = false; power = 0; net.remoteDrag = false; }
+  const g = active;
+  if (m.c === "pos" || m.c === "fire") {
+    g.x = m.x; g.y = m.y; g.vx = m.vx || 0; g.vy = m.vy || 0; g.rx = 0; g.ry = 0;
+    g.face = m.f > 0 ? 1 : -1; g.aim = clamp(+m.a || 0, -80, 88);
+    g.walk = m.w || 0; g.lastWalk = m.wk ? time : -9; g.crouchT = m.cr || 0; g.landT = m.ld || 0; g.landAmt = m.la || 0;
+    if (m.wp && teams[g.team].ammo[m.wp] > 0) weapon = m.wp;
+    net.remoteDrag = true;
+    if (m.c === "pos") { charging = !!m.ch; power = clamp(+m.pw || 0, 0, 1); }
+    else { charging = false; power = clamp(+m.pw || 0.06, 0.06, 1); fire(); }
+  }
 }
 function netSend(o) { if (isClientNet() && online()) net.tx.send("H", Object.assign({ t: "in" }, o)); }
-function netKeys() { if (isClientNet() && online() && isHumanTurn()) netSend({ k: { left: !!keys.left, right: !!keys.right, up: !!keys.up, down: !!keys.down } }); }
+function netKeys() {}
+function clientPosMsg(c) {
+  const g = active;
+  return { c, x: r1(g.x), y: r1(g.y), vx: r1(g.vx), vy: r1(g.vy), f: g.face, a: r1(g.aim), w: r2(g.walk), wk: time - (g.lastWalk || -9) < 0.15 ? 1 : 0,
+    cr: r2(g.crouchT), ld: r2(g.landT), la: r2(g.landAmt), ch: charging ? 1 : 0, pw: r2(power), wp: weapon };
+}
+// o jogador remoto dispara: avisa o anfitrião e já mostra a bosta saindo, sem esperar a rede
+function clientFire() {
+  if (!net || net.fired || !active) return;
+  const g = active, pw = Math.max(0.06, power);
+  const msg = clientPosMsg("fire"); msg.pw = r2(pw); net.tx.send("H", Object.assign({ t: "in" }, msg));
+  const a = g.aim * Math.PI / 180, sp = pw * MAXV * powMul(g), L = buttPoint(g, g.face, g.aim, pw);
+  net.pred = { id: null, pred: true, x: L.x, y: L.y, vx: Math.cos(a) * g.face * sp, vy: -Math.sin(a) * sp, type: weapon, owner: g, age: 0, rot: Math.atan2(Math.cos(a) * g.face, Math.sin(a)), spin: 6, s0: clamp(rPoopS(pw) * RK / WEAP[weapon].size, 0.2, 1), sim: true, born: time };
+  projectiles.push(net.pred);
+  g.throwT = 0.35; sndFart(weapon === "mega"); net.recentFart = time;
+  charging = false; power = 0; drag = null; net.fired = true;
+}
+function localCtl() { return isClientNet() && online() && state === "aim" && active && controllerOf(active) === net.id && !net.fired; }
 // --- estado enviado pelo anfitrião ---
 function netEvent(e) { if (isHostNet() && online() && !inRender) net.events.push(e); }
+const PK = ["chunk", "stink", "dust", "spark", "drop"];
 function wrapParticles() {
-  particles.push = function (...a) { if (isHostNet() && online() && !inRender) for (const p of a) net.events.push({ p }); return Array.prototype.push.apply(this, a); };
+  particles.push = function (...a) {
+    if (isHostNet() && online() && !inRender) for (const p of a) net.events.push({ p: [PK.indexOf(p.kind), r1(p.x), r1(p.y), r1(p.vx || 0), r1(p.vy || 0), r2(p.life), r1(p.size || 2), p.color || r1(p.ph || 0)] });
+    return Array.prototype.push.apply(this, a);
+  };
 }
 function snapG(g) {
   return [r1(g.x), r1(g.y), g.face, r1(g.aim), r1(g.hp), (g.dead ? 1 : 0) | (g.gone ? 2 : 0) | (time - (g.lastWalk || -9) < 0.15 ? 4 : 0),
@@ -1636,8 +1657,9 @@ function snapG(g) {
 function hostSnapshot() {
   const e = balloonEvt;
   const m = {
-    t: "snap", s: state, a: active ? gorillas.indexOf(active) : -1, ct: curTeam, w: wind, tt: r1(turnTime), wp: weapon, ch: charging ? 1 : 0, pw: r2(power),
-    g: gorillas.map(snapG), p: projectiles.map(p => [p.id, r1(p.x), r1(p.y), r2(p.rot), p.type, r2(p.s0), r2(p.age)]),
+    t: "snap", ht: Math.round(time * 1000) / 1000, s: state, a: active ? gorillas.indexOf(active) : -1, ct: curTeam, w: wind, tt: r1(turnTime), wp: weapon, ch: charging ? 1 : 0, pw: r2(power),
+    g: gorillas.map(snapG),
+    p: projectiles.map(p => [p.id, r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), r2(p.rot), p.type, r2(p.s0), r2(p.age), p.owner ? gorillas.indexOf(p.owner) : -1, r1(p.spin)]),
     am: teams.map(T => T.ammo), sh: shiny ? [r1(shiny.x), r1(shiny.y)] : 0,
     b: e ? [r2(e.t), gorillas.indexOf(e.target), e.from, e.to] : 0,
     cf: camFocus ? [r1(camFocus.x), r1(camFocus.y)] : 0, as: net.assign, pl: net.players, ev: net.events,
@@ -1645,30 +1667,56 @@ function hostSnapshot() {
   net.events = [];
   net.tx.broadcast(m);
 }
+// o cliente guarda os estados que chegam e mostra a partida ~0,1 s atrás, sempre com um estado de reserva
+const NET_DELAY = 0.1;
 function applySnap(m) {
   if (!online()) return;
+  if (!net.buf) net.buf = [];
+  const off = m.ht - time;
+  net.off = net.off == null ? off : (off > net.off ? net.off * 0.8 + off * 0.2 : off);
+  net.buf.push(m);
+  if (net.buf.length > 12) net.buf.splice(0, net.buf.length - 12);
+}
+function applySnapDiscrete(m) {
   net.assign = m.as || net.assign; if (m.pl) net.players = m.pl;
-  state = m.s; curTeam = m.ct; wind = m.w; turnTime = m.tt; weapon = m.wp; charging = !!m.ch; power = m.pw;
+  const prevActive = active, wasCtl = localCtl();
+  state = m.s; curTeam = m.ct; wind = m.w; turnTime = m.tt;
   const na = m.a >= 0 ? gorillas[m.a] : null;
+  if (m.a !== net.lastActive || state !== "aim") net.fired = false;
   if (m.a !== net.lastActive && na && state === "aim") {
     net.lastActive = m.a;
     const mine = controllerOf(na) === net.id;
     banner = { text: mine ? t("yourTurn", { n: na.name }) : t("turn", { n: na.name }), color: teams[na.team].color, t: 0 };
+    if (mine) { for (const k in keys) keys[k] = false; charging = false; power = 0; drag = null; }
   }
   active = na;
-  net.snapAt = time;
+  const ctl = localCtl() && wasCtl && prevActive === na;
+  if (!ctl && !localCtl()) { weapon = m.wp; charging = !!m.ch; power = m.pw; }
+  else if (!wasCtl) weapon = m.wp;
   m.g.forEach((a, i) => {
     const g = gorillas[i]; if (!g) return;
-    g.px = g.x; g.py = g.y; g.tx = a[0]; g.ty = a[1];
-    if (!g.netInit) { g.x = g.px = a[0]; g.y = g.py = a[1]; g.netInit = true; }
-    g.face = a[2]; g.aim = a[3]; g.hp = a[4]; g.dead = !!(a[5] & 1); g.gone = !!(a[5] & 2); g.lastWalk = (a[5] & 4) ? time : -9;
-    g.vy = a[6]; g.walk = a[7]; g.crouchT = a[8]; g.landT = a[9]; g.landAmt = a[10]; g.staggerT = a[11]; g.hitT = a[12]; g.shakeT = a[13]; g.beatT = a[14];
-    g.throwT = a[15]; g.hurtT = a[16]; g.stuck = a[17]; g.spotT = a[18]; g.cover = a[19]; g.lookUpT = a[20]; g.blinkT = a[21];
+    const mineNow = localCtl() && g === active;
+    g.hp = a[4]; g.dead = !!(a[5] & 1); g.gone = !!(a[5] & 2);
+    g.staggerT = a[11]; g.hitT = a[12]; g.shakeT = a[13]; g.beatT = a[14]; g.hurtT = a[16]; g.stuck = a[17]; g.spotT = a[18]; g.cover = a[19]; g.lookUpT = a[20];
     if (a[22]) g.spots = a[22].map(s => ({ x: s[0], y: s[1], r: s[2] }));
     g.goo = a[23] ? a[23].map(s => ({ x: s[0], y: s[1], r: s[2] })) : [];
+    if (mineNow && g.netInit) return; // o meu gorila na minha vez: quem manda é o meu celular
+    if (!g.netInit) { g.x = a[0]; g.y = a[1]; g.netInit = true; }
+    g.face = a[2]; g.aim = a[3]; g.lastWalk = (a[5] & 4) ? time : -9;
+    g.vx = 0; g.vy = a[6]; g.walk = a[7]; g.crouchT = a[8]; g.landT = a[9]; g.landAmt = a[10]; g.throwT = Math.max(g.throwT || 0, a[15]); g.blinkT = a[21];
   });
-  const old = {}; for (const p of projectiles) old[p.id] = p;
-  projectiles = m.p.map(a => { const o = old[a[0]]; const p = { id: a[0], x: o ? o.x : a[1], y: o ? o.y : a[2], tx: a[1], ty: a[2], px: o ? o.x : a[1], py: o ? o.y : a[2], rot: a[3], type: a[4], s0: a[5], age: a[6], vx: 0, vy: 0 }; return p; });
+  // bostas: cada celular calcula o voo; o anfitrião só confirma
+  const byId = {}; for (const p of projectiles) if (p.id != null) byId[p.id] = p;
+  const keep = [];
+  for (const a of m.p) {
+    let p = byId[a[0]];
+    if (!p && net.pred && net.pred.id == null && gorillas[a[9]] === net.pred.owner) { p = net.pred; p.id = a[0]; }
+    if (!p) p = { id: a[0], x: a[1], y: a[2], vx: a[3], vy: a[4], rot: a[5], type: a[6], s0: a[7], age: a[8], owner: gorillas[a[9]] || null, spin: a[10], sim: true };
+    else if (Math.hypot(p.x - a[1], p.y - a[2]) > 40) { p.x = a[1]; p.y = a[2]; p.vx = a[3]; p.vy = a[4]; p.done = false; }
+    keep.push(p);
+  }
+  if (net.pred && net.pred.id == null && time - net.pred.born < 1.5) keep.push(net.pred); else if (net.pred && net.pred.id == null) net.pred = null;
+  projectiles = keep;
   m.am.forEach((am, i) => { if (teams[i]) teams[i].ammo = am; });
   shiny = m.sh ? { x: m.sh[0], y: m.sh[1], turns: 1 } : null;
   if (m.b) {
@@ -1680,17 +1728,55 @@ function applySnap(m) {
   for (const e of m.ev || []) applyNetEvent(e);
 }
 function applyNetEvent(e) {
-  if (e.p) particles.push(e.p);
+  if (e.p) {
+    const a = e.p, kind = PK[a[0]] || "chunk";
+    particles.push({ kind, x: a[1], y: a[2], vx: a[3], vy: a[4], life: a[5], t: 0, size: a[6], color: typeof a[7] === "string" ? a[7] : undefined, ph: typeof a[7] === "number" ? a[7] : 0 });
+  }
   else if (e.tx) texts.push({ x: e.tx[0], y: e.tx[1], text: e.tx[2], color: e.tx[3], t: 0 });
-  else if (e.s && SND[e.s]) SND[e.s](...(e.a || []));
+  else if (e.s && SND[e.s]) { if (!(e.s === "sndFart" && net.recentFart && time - net.recentFart < 1)) SND[e.s](...(e.a || [])); }
   else if (e.ex) { carveCrater(e.ex[0], e.ex[1], WEAP[e.ex[2]].r); shake = Math.min(18, shake + WEAP[e.ex[2]].r / 3); }
   else if (e.over !== undefined) gameOver(e.over);
 }
 function clientUpdate(dt) {
   time += dt;
-  const k = clamp((time - (net.snapAt || 0)) / 0.05, 0, 1);
-  for (const g of gorillas) if (g.tx !== undefined) { g.x = g.px + (g.tx - g.px) * k; g.y = g.py + (g.ty - g.py) * k; }
-  for (const p of projectiles) { p.x = p.px + (p.tx - p.px) * k; p.y = p.py + (p.ty - p.py) * k; }
+  // estados atrasados ~0,1 s, aplicados na ordem, com interpolação entre dois
+  const buf = net.buf || [];
+  if (net.off != null) {
+    let rt = time + net.off - NET_DELAY;
+    if (buf.length > 6) rt += (buf.length - 6) * 0.02;
+    while (buf.length && buf[0].ht <= rt) { net.cur = buf.shift(); applySnapDiscrete(net.cur); }
+    const A = net.cur, B = buf[0];
+    if (A) {
+      const k = B ? clamp((rt - A.ht) / Math.max(0.001, B.ht - A.ht), 0, 1) : 1;
+      gorillas.forEach((g, i) => {
+        if (localCtl() && g === active) return;
+        const a = A.g[i], b = B ? B.g[i] : null; if (!a) return;
+        g.x = b ? a[0] + (b[0] - a[0]) * k : a[0]; g.y = b ? a[1] + (b[1] - a[1]) * k : a[1];
+        if (b && Math.abs(b[3] - a[3]) < 60) g.aim = a[3] + (b[3] - a[3]) * k;
+      });
+      if (!localCtl() && B) power = A.pw + (B.pw - A.pw) * k;
+    }
+  }
+  // a minha vez: movimento e mira respondem na hora
+  if (localCtl()) {
+    const g = active;
+    stepG(g, dt);
+    if (!charging) {
+      if (keys.left && !keys.right) walk(g, -1, dt);
+      else if (keys.right && !keys.left) walk(g, 1, dt);
+    }
+    if (keys.up) g.aim = Math.min(88, g.aim + 65 * dt);
+    if (keys.down) g.aim = Math.max(-80, g.aim - 65 * dt);
+    if (charging && !drag) { power += dt / 1.5; if (power >= 1) { power = 1; clientFire(); } }
+    net.posT = (net.posT || 0) + dt;
+    if (net.posT >= 1 / 30 && !net.fired) { net.posT = 0; net.tx.send("H", Object.assign({ t: "in" }, clientPosMsg("pos"))); }
+  } else if (active && active.throwT > 0) active.throwT -= dt;
+  // voo das bostas calculado aqui mesmo
+  for (const p of projectiles) {
+    if (p.done) continue;
+    const r = projStep(p, dt); p.rot += (p.spin || 0) * dt;
+    if (r) p.done = true;
+  }
   updateDrips(dt);
   for (const c of clouds) { c.x += (wind * 0.12 + 6) * dt; if (c.x > W + 300) c.x = -300; if (c.x < -300) c.x = W + 300; }
   for (let i = particles.length - 1; i >= 0; i--) {
@@ -1946,6 +2032,7 @@ function renderInner() {
 
   drawShiny();
   for (const p of projectiles) {
+    if (p.done) continue;
     if (p.type === "balao") { ctx.globalAlpha = .4; ctx.fillStyle = "#fff3a0"; ell(p.x, p.y, 10, 10); ctx.globalAlpha = 1; if (Math.random() < .5) particles.push({ kind: "spark", x: p.x, y: p.y, vx: 0, vy: 0, life: .5, t: 0, size: 2.5 }); }
     drawPoop(p.x, p.y, WEAP[p.type].size * (p.s0 + (1 - p.s0) * Math.min(1, p.age * 3)), p.rot, p.type);
     if (p.type !== "mini") drawFlies(p.x, p.y, 2, 14);
@@ -2103,7 +2190,7 @@ function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now; renderDt = dt;
   if (isClientNet() && online()) { if (state !== "menu") clientUpdate(dt); }
   else if (state !== "menu" && !paused) { acc += dt; while (acc >= STEP) { update(STEP); acc -= STEP; } }
-  if (isHostNet() && online()) { net.snapT += dt; if (net.snapT >= 0.05) { net.snapT = 0; hostSnapshot(); } }
+  if (isHostNet() && online()) { net.snapT += dt; if (net.snapT >= 1 / 30) { net.snapT = 0; hostSnapshot(); } }
   quitBtn.classList.toggle("hidden", !inMatch() || paused);
   if (isTouch) touchBar.classList.toggle("hidden", !inMatch() || paused);
   render();
@@ -2146,7 +2233,6 @@ resize();
 const KEYMAP = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", ArrowUp: "up", KeyW: "up", ArrowDown: "down", KeyS: "down" };
 function cycleWeapon() {
   if (!isHumanTurn() || charging) return;
-  if (isClientNet()) { netSend({ c: "weapon" }); return; }
   doCycleWeapon();
 }
 function doCycleWeapon() {
@@ -2155,9 +2241,9 @@ function doCycleWeapon() {
   for (let k = 0; k < WEAP_ORDER.length; k++) { i = (i + 1) % WEAP_ORDER.length; if (T.ammo[WEAP_ORDER[i]] > 0) break; }
   weapon = WEAP_ORDER[i];
 }
-function fireDown() { if (isHumanTurn() && !charging) { if (isClientNet()) { netSend({ c: "charge" }); return; } charging = true; power = 0; drag = null; } }
-function fireUp() { if (isClientNet()) { if (isHumanTurn()) netSend({ c: "release" }); return; } if (isHumanTurn() && charging && !drag) fire(); }
-function doJump() { if (!isHumanTurn() || charging) return; if (isClientNet()) netSend({ c: "jump" }); else jump(active); }
+function fireDown() { if (isHumanTurn() && !charging) { charging = true; power = 0; drag = null; } }
+function fireUp() { if (isHumanTurn() && charging && !drag) { if (isClientNet()) clientFire(); else fire(); } }
+function doJump() { if (!isHumanTurn() || charging) return; jump(active); }
 window.addEventListener("keydown", e => {
   audioInit();
   if (e.code === "Escape") { e.preventDefault(); if (!quitDlg.classList.contains("hidden")) closeQuit(); else openQuit(); return; }
@@ -2211,13 +2297,12 @@ cv.addEventListener("pointermove", e => {
     active.aim = clamp(Math.atan2(vy, Math.abs(vx)) * 180 / Math.PI, -80, 88);
   }
   power = clamp((len - 8) / dragMax(), 0, 1);
-  if (isClientNet()) netSend({ c: "drag", a: Math.round(active.aim * 10) / 10, f: active.face, p: Math.round(power * 100) / 100 });
 });
 function endDrag(e, cancel) {
   if (!drag || e.pointerId !== drag.id) return;
   if (isClientNet()) {
-    if (!cancel && isHumanTurn() && power >= 0.05) netSend({ c: "dragFire", a: Math.round(active.aim * 10) / 10, f: active.face, p: Math.round(power * 100) / 100 });
-    else netSend({ c: "dragCancel" });
+    if (!cancel && isHumanTurn() && power >= 0.05) clientFire();
+    else { charging = false; power = 0; }
     drag = null; return;
   }
   if (!cancel && isHumanTurn() && power >= 0.05) fire();
