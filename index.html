@@ -198,9 +198,10 @@ const WEAP = {
   mega:   { name: "Mega Bosta",   icon: "💩💥",   r: 58, dmg: 70, size: 1.6 },
   grude:  { name: "Bosta Grudenta", icon: "🍯💩", r: 30, dmg: 22, size: 1.0, color: "#6f6a1c", hi: "#a39a2e" },
   mini:   { name: "mini",         icon: "",       r: 17, dmg: 16, size: 0.55 },
+  balao:  { name: "Bosta-Balão",  icon: "🎈💩",   r: 20, dmg: 10, size: 1.0, color: "#e0a020", hi: "#fff2a8" },
 };
-const WEAP_ORDER = ["bosta", "tripla", "grude", "mega"];
-const AMMO = { bosta: Infinity, tripla: 2, grude: 2, mega: 1 };
+const WEAP_ORDER = ["bosta", "tripla", "grude", "mega", "balao"];
+const AMMO = { bosta: Infinity, tripla: 2, grude: 2, mega: 1, balao: 0 };
 
 const TEAMS_DEF = [
   { key: "team0", name: "Peludos",    color: "#e5484d", names: ["Kong", "Bongo", "Tonho"] },
@@ -244,7 +245,7 @@ const STR = {
     winCpu: "O computador mira melhor com bosta. Bora se vingar?", winPvp: "Reis e rainhas da selva. E da bosta.",
     wind: "VENTO", tabSwap: "Tab: trocar", kbHint: "← → andar · ↑ ↓ mirar · Espaço atirar · Enter pular",
     touchHintS: "👆 Puxe para trás e solte", touchHintL: "👆 Puxe para trás como um estilingue · solte para atirar",
-    w_bosta: "Bosta", w_tripla: "Bosta Tripla", w_mega: "Mega Bosta", w_grude: "Bosta Grudenta",
+    w_bosta: "Bosta", w_tripla: "Bosta Tripla", w_mega: "Mega Bosta", w_grude: "Bosta Grudenta", w_balao: "Bosta-Balão", bonus: "+1 BOSTA-BALÃO!",
     install: "📲 Instalar o jogo", iosHint: "📲 Para instalar: toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>.",
   },
   en: {
@@ -261,7 +262,7 @@ const STR = {
     winCpu: "The computer throws poop better than you. Revenge?", winPvp: "Kings and queens of the jungle. And of poop.",
     wind: "WIND", tabSwap: "Tab: switch", kbHint: "← → walk · ↑ ↓ aim · Space throw · Enter jump",
     touchHintS: "👆 Pull back and release", touchHintL: "👆 Pull back like a slingshot · release to throw",
-    w_bosta: "Poop", w_tripla: "Triple Poop", w_mega: "Mega Poop", w_grude: "Sticky Poop",
+    w_bosta: "Poop", w_tripla: "Triple Poop", w_mega: "Mega Poop", w_grude: "Sticky Poop", w_balao: "Balloon Poop", bonus: "+1 BALLOON POOP!",
     install: "📲 Install the game", iosHint: "📲 To install: tap <b>Share</b>, then <b>Add to Home Screen</b>.",
   },
   de: {
@@ -278,7 +279,7 @@ const STR = {
     winCpu: "Der Computer wirft besser mit Kacke. Revanche?", winPvp: "Könige und Königinnen des Dschungels. Und der Kacke.",
     wind: "WIND", tabSwap: "Tab: wechseln", kbHint: "← → laufen · ↑ ↓ zielen · Leertaste werfen · Enter springen",
     touchHintS: "👆 Zurückziehen und loslassen", touchHintL: "👆 Wie eine Steinschleuder zurückziehen · loslassen zum Werfen",
-    w_bosta: "Kacke", w_tripla: "Dreifach-Kacke", w_mega: "Mega-Kacke", w_grude: "Klebe-Kacke",
+    w_bosta: "Kacke", w_tripla: "Dreifach-Kacke", w_mega: "Mega-Kacke", w_grude: "Klebe-Kacke", w_balao: "Ballon-Kacke", bonus: "+1 BALLON-KACKE!",
     install: "📲 Spiel installieren", iosHint: "📲 Zum Installieren: Tippe auf <b>Teilen</b> und dann auf <b>Zum Home-Bildschirm</b>.",
   },
 };
@@ -618,6 +619,7 @@ function projStep(p, dt) {
     p.x += p.vx * dt / n; p.y += p.vy * dt / n;
     if (p.y > WATER) return "water";
     if (p.x < -500 || p.x > W + 500) return "out";
+    if (!p.sim && shiny && Math.hypot(p.x - shiny.x, p.y - shiny.y - Math.sin(time * 2) * 6) < 17) collectShiny();
     if (S(p.x, p.y)) return "hit";
     for (const g of gorillas) {
       if (g.gone || g.dead) continue;
@@ -704,6 +706,15 @@ function explode(x, y, type) {
   shake = Math.min(18, shake + r / 3);
   sndSplat(r > 40);
   // bosta tripla rebenta em pedaços
+  if (type === "balao" && !balloonEvt) {
+    let best = null, bd = 1e9;
+    for (const g of gorillas) {
+      if (g.dead || g.gone || g.team === shooterTeam) continue;
+      const d = Math.hypot(g.x - x, g.y - 14 - y);
+      if (d < r * 2.6 && d < bd) { bd = d; best = g; }
+    }
+    if (best) startBalloon(best);
+  }
   if (type === "tripla") {
     for (let i = 0; i < 4; i++) spawnProj(x, y - 6, rand(-170, 170), rand(-380, -240), "mini", null);
   }
@@ -723,6 +734,8 @@ function nextTurn() {
     if (!g.stuck && !g.dead) { addText(g.x, g.y - 62, t("free"), "#fff"); g.goo = []; }
   }
   camFocus = null;
+  if (shiny && --shiny.turns <= 0) shiny = null;
+  trySpawnShiny();
   curTeam = 1 - curTeam;
   const T = teams[curTeam], list = gorillas.filter(g => g.team === curTeam);
   for (let k = 0; k < list.length; k++) { T.idx = (T.idx + 1) % list.length; if (!list[T.idx].dead) break; }
@@ -860,7 +873,7 @@ function drawSplat(now) {
   }
 }
 function startGame() {
-  matchId++;
+  matchId++; shiny = null; balloonEvt = null; drips = [];
   clearSplat();
   document.getElementById("menu").classList.add("hidden");
   document.getElementById("over").classList.add("hidden");
@@ -875,7 +888,7 @@ function startGame() {
 function simShot(g, face, ang, pw) {
   const a = ang * Math.PI / 180, sp = pw * MAXV * powMul(g);
   const L = buttPoint(g, face, ang, pw);
-  const p = { x: L.x, y: L.y, vx: Math.cos(a) * face * sp, vy: -Math.sin(a) * sp, owner: g, age: 0 };
+  const p = { sim: true, x: L.x, y: L.y, vx: Math.cos(a) * face * sp, vy: -Math.sin(a) * sp, owner: g, age: 0 };
   const saveFace = g.face; g.face = face;
   let res = null;
   for (let t = 0; t < 9; t += STEP) {
@@ -892,7 +905,8 @@ function aiPlan() {
   const enemies = gorillas.filter(e => !e.dead && e.team !== g.team).sort((a, b) => Math.abs(a.x - g.x) - Math.abs(b.x - g.x));
   const friends = gorillas.filter(e => !e.dead && e.team === g.team);
   let wpn = "bosta";
-  if (T.ammo.mega > 0 && Math.random() < 0.25) wpn = "mega";
+  if (T.ammo.balao > 0) wpn = "balao";
+  else if (T.ammo.mega > 0 && Math.random() < 0.25) wpn = "mega";
   else if (T.ammo.tripla > 0 && Math.random() < 0.3) wpn = "tripla";
   else if (T.ammo.grude > 0 && Math.random() < 0.3) wpn = "grude";
   const wr = WEAP[wpn].r;
@@ -966,6 +980,8 @@ function update(dt) {
     }
   }
 
+  balloonUpdate(dt); updateDrips(dt);
+  for (const g of gorillas) { if (g.lookUpT > 0) g.lookUpT -= dt; if (!balloonEvt && g.cover > 0) g.cover = Math.max(0, g.cover - dt / 6); }
   for (const p of projectiles.slice()) {
     const r = projStep(p, dt);
     p.rot += p.spin * dt;
@@ -984,6 +1000,7 @@ function update(dt) {
     if (p.kind === "chunk" || p.kind === "drop") { p.vy += GRAVP * dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.kind === "chunk" && S(p.x, p.y)) { p.vx *= 0.3; p.vy = 0; } }
     else if (p.kind === "stink") { p.x += (p.vx + wind * 0.25) * dt; p.y += p.vy * dt; }
     else if (p.kind === "dust") { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.92; }
+    else if (p.kind === "spark") { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.95; p.vy *= 0.95; }
   }
   for (let i = texts.length - 1; i >= 0; i--) { texts[i].t += dt; if (texts[i].t > 1.6) texts.splice(i, 1); }
 
@@ -991,7 +1008,7 @@ function update(dt) {
   if (state === "settle") {
     settleT += dt;
     const moving = gorillas.some(g => !g.gone && (g.vx !== 0 || g.vy !== 0 || !grounded(g)));
-    if ((settleT > 1.8 && !moving) || settleT > 7) processDeaths();
+    if (!balloonEvt && ((settleT > 1.8 && !moving) || settleT > 7)) processDeaths();
   }
   if (state === "wait") { waitT -= dt; if (waitT <= 0) nextTurn(); }
 
@@ -1190,15 +1207,24 @@ function rHead(P, band) {
   ctx.fillStyle = FUR; ell(-9, 1, 3.5, 4); ell(0, 0, 11.5, 10.8);
   ctx.fillStyle = SKIN; ell(5, 3.5, 8, 6.6);
   ctx.fillStyle = FUR; ctx.fillRect(-2.5, -6.5, 14, 2.8);
-  const ey = -2, op = { n: 1, half: .45, squint: .22, wide: 1.25 }[P.eyes || "n"] * (P.blink ? .12 : 1);
-  for (const ex of [2.2, 8.3]) { ctx.fillStyle = "#fff"; ell(ex, ey, 2.6, 2.8 * op); ctx.fillStyle = "#111"; ell(ex + .4 + (P.look || 0), ey, 1.3, 1.3 * Math.min(1, op * 1.1)); }
-  if (op < .6) { ctx.fillStyle = FUR; ctx.fillRect(-1, ey - 3.2, 12.5, 2.6 * (1 - op)); }
+  const ey = -2;
+  if (P.eyes === "bliss") { ctx.strokeStyle = "#111"; ctx.lineWidth = 1.3; for (const ex of [2.2, 8.3]) { ctx.beginPath(); ctx.arc(ex, ey + 1, 2, Math.PI + .3, -.3); ctx.stroke(); } }
+  else {
+    const op = { n: 1, half: .45, squint: .22, wide: 1.25 }[P.eyes || "n"] * (P.blink ? .12 : 1);
+    for (const ex of [2.2, 8.3]) { ctx.fillStyle = "#fff"; ell(ex, ey, 2.6, 2.8 * op); ctx.fillStyle = "#111"; ell(ex + .4 + (P.look || 0), ey + (P.lookY || 0), 1.3, 1.3 * Math.min(1, op * 1.1)); }
+    if (op < .6) { ctx.fillStyle = FUR; ctx.fillRect(-1, ey - 3.2, 12.5, 2.6 * (1 - op)); }
+  }
+  if (P.blush) { ctx.fillStyle = "rgba(230,80,80," + P.blush * .6 + ")"; ell(9, 3, 3.5, 2.2); }
   ctx.fillStyle = "#3a2c25"; ell(6.8, 3.4, 1.1, .85); ell(9.6, 3.4, 1.1, .85);
   ctx.strokeStyle = "#3a2c25"; ctx.lineWidth = 1.3;
   if (P.mouth === "o") ell(7.5, 7.6, 1.6, 2);
+  else if (P.mouth === "laugh") { ctx.fillStyle = "#3a1414"; ctx.beginPath(); ctx.arc(7, 5.4, 3, 0, Math.PI); ctx.fill(); ctx.fillStyle = "#fff"; ctx.fillRect(4.6, 5.4, 4.8, 1); }
+  else if (P.mouth === "grit") { ctx.fillStyle = "#fff"; ctx.fillRect(3.6, 6, 7, 2.4); ctx.lineWidth = .6; for (let i = 4.8; i < 10.6; i += 1.4) { ctx.beginPath(); ctx.moveTo(i, 6); ctx.lineTo(i, 8.4); ctx.stroke(); } ctx.lineWidth = 1; ctx.strokeRect(3.6, 6, 7, 2.4); }
   else { ctx.beginPath(); ctx.arc(7, 5.6, 2.4, .35, Math.PI - .35); ctx.stroke(); }
   ctx.fillStyle = band; ctx.fillRect(-11, -10, 21, 3.8);
   ctx.beginPath(); ctx.moveTo(-11, -8.5); ctx.lineTo(-18, -12 + Math.sin(time * 7) * 2); ctx.lineTo(-17, -5); ctx.fill();
+  if (P.goggles) { ctx.fillStyle = "#6b4520"; ctx.fillRect(-6, -12.5, 14, 4); ctx.fillStyle = "#9fd8ff"; ctx.strokeStyle = "#c9a23a"; ctx.lineWidth = 1.2; for (const gx of [0, 6]) { ctx.beginPath(); ctx.arc(gx, -10.5, 2.8, 0, 7); ctx.fill(); ctx.stroke(); } }
+  if (P.sweat) { ctx.fillStyle = "#9fd8ff"; for (let i = 0; i < 2; i++) { const yy = ((time * 30 + i * 9) % 14) - 12; ell(-6 - i * 3, yy, 1.1, 1.7); } }
 }
 // poses (coordenadas locais, virado para +x, chão em y = 0)
 function rIdle(g) { return { hip: [-3, -21], torso: .62, handF: [17, -1], handB: [11, -1], footF: [2, 0], footB: [-8, 0], hr: -.35, blink: g.blinkT > 0, look: Math.sin(time * .7 + g.ph) * .4 }; }
@@ -1236,6 +1262,7 @@ function rigPose(g, isActive, air) {
   else if (g.beatT > 0) P = rBeat(g);
   else if (time - (g.lastWalk || -9) < 0.15) P = rWalk(g);
   else P = rIdle(g);
+  if (g.lookUpT > 0 && !(g.hitT > 0)) { P.hr = -.95; P.look = 0; P.eyes = "wide"; }
   if (g.buttK > 0 && !air && !busy) {
     const ex = isActive && charging ? power : 0;
     P = rBlend(rIdle(g), rButt(g.aim, ex, ex), g.buttK);
@@ -1247,24 +1274,29 @@ function rigPose(g, isActive, air) {
   return { P, face };
 }
 function drawRig(g, P, face) {
-  const T = teams[g.team], a = P.torso, dir = [Math.sin(a), -Math.cos(a)], hip = P.hip, br = Math.sin(time * 2.3 + g.ph);
+  const band = g.bandColor || teams[g.team].color, a = P.torso, dir = [Math.sin(a), -Math.cos(a)], hip = P.hip, br = Math.sin(time * 2.3 + g.ph), rk = g.rk || RK;
   ctx.save(); ctx.translate(g.x, g.y);
   if (g.hurtT > 0 && !(g.hitT > 0)) ctx.translate(Math.sin(time * 70) * 1.2, 0);
-  ctx.scale(RK * face, RK); if (P.rot) ctx.rotate(P.rot);
+  ctx.scale(rk * face, rk); if (P.rot) ctx.rotate(P.rot);
   const chest = [hip[0] + dir[0] * 27, hip[1] + dir[1] * 27], perp = [-dir[1], dir[0]];
   const shF = [chest[0] - perp[0] * 2 - dir[0] * 2, chest[1] - perp[1] * 2 - dir[1] * 2], shB = [chest[0] - perp[0] * 3 - dir[0] * 3, chest[1] - perp[1] * 3 - dir[1] * 3];
   const aB = rIK(shB, P.handB, 16, 16, P.bendB || 1); rLimb(shB, aB.e, aB.h, FUR_FAR, 8.5); ctx.fillStyle = FUR_FAR; ell(aB.h[0], aB.h[1], 4.4, 4);
-  const hB = [hip[0] - 2, hip[1] + 2], lB = rIK(hB, P.footB, 13, 13, -1); rLimb(hB, lB.e, lB.h, FUR_FAR, 9); ctx.fillStyle = FUR_FAR; ell(lB.h[0] + 2, lB.h[1] - 1, 5.5, 3.2);
+  const hB = [hip[0] - 2, hip[1] + 2], lB = rIK(hB, P.footB, 13, 13, P.kneeB || -1); rLimb(hB, lB.e, lB.h, FUR_FAR, 9); ctx.fillStyle = FUR_FAR; ell(lB.h[0] + 2, lB.h[1] - 1, 5.5, 3.2);
   ctx.save(); ctx.translate(hip[0], hip[1]); ctx.rotate(a);
   ctx.fillStyle = FUR; ell(0, -2, 13, 9); ell(0, -15, 15.5 * (1 + br * .02), 19 * (1 + br * .025));
   ctx.fillStyle = BELLY; ell(4, -13, 8.5 * (1 + br * .04), 12.5 * (1 + br * .04));
+  if (g.cover > 0) {
+    ctx.globalAlpha = Math.min(1, g.cover); ctx.fillStyle = "#6b3e1f";
+    ell(-4, -20, 9, 7); ell(5, -10, 8, 9); ell(-6, -4, 6, 5); ell(3, -27, 6, 4);
+    ctx.fillStyle = "#8f5a2e"; ell(-6, -22, 3, 2); ell(3, -12, 3, 2); ctx.globalAlpha = 1;
+  }
   if (g.spotT > 0 && g.spots.length) {
     ctx.globalAlpha = Math.min(1, g.spotT / 1.2);
     for (const s of g.spots) { ctx.fillStyle = "#5e3518"; ell(s.x * 1.3, s.y + 4, s.r * 1.6, s.r * 1.3); ctx.fillStyle = "#8f5a2e"; ell(s.x * 1.3 - s.r * .4, s.y + 3.5, s.r * .6, s.r * .45); }
     ctx.globalAlpha = 1;
   }
   if (P.butt) {
-    const ex = P.poop || 0, sq = ex * 1.6;
+    const ex = P.poop || 0, sq = ex * 1.6 + (P.dil || 0) * 2;
     ctx.fillStyle = R_BARE; ell(-3.4 - sq * .6, 4.5, 5.2, 6); ell(4.4 + sq * .6, 4.5, 5.2, 6);
     ctx.fillStyle = "#6e4a40"; ell(.5, R_ANUS, 1.6 + sq * .9, 1.1 + sq * .5);
     if (ex > 0 && g === active) {
@@ -1275,13 +1307,148 @@ function drawRig(g, P, face) {
     ctx.strokeStyle = "#6e4f48"; ctx.lineWidth = .8; ctx.beginPath(); ctx.moveTo(.5, -1); ctx.lineTo(.5, R_ANUS - 1); ctx.stroke();
   }
   ctx.restore();
-  const hF = [hip[0] + 3, hip[1] + 2], lF = rIK(hF, P.footF, 13, 13, -1); rLimb(hF, lF.e, lF.h, FUR, 9.5); ctx.fillStyle = FUR; ell(lF.h[0] + 2, lF.h[1] - 1, 5.8, 3.4);
+  const hF = [hip[0] + 3, hip[1] + 2], lF = rIK(hF, P.footF, 13, 13, P.kneeF || -1); rLimb(hF, lF.e, lF.h, FUR, 9.5); ctx.fillStyle = FUR; ell(lF.h[0] + 2, lF.h[1] - 1, 5.8, 3.4);
   const neck = [chest[0] + dir[0] * 7, chest[1] + dir[1] * 7], hc = [neck[0], neck[1] - 6];
-  ctx.save(); ctx.translate(hc[0], hc[1]); ctx.rotate((P.headUpside ? Math.PI : 0) + (P.hr || 0)); rHead(P, T.color); ctx.restore();
+  ctx.save(); ctx.translate(hc[0], hc[1]); ctx.rotate((P.headUpside ? Math.PI : 0) + (P.hr || 0)); rHead(P, band); ctx.restore();
   const aF = rIK(shF, P.handF, 16, 16, P.bendF || 1); rLimb(shF, aF.e, aF.h, FUR, 9); ctx.fillStyle = FUR; ell(aF.h[0], aF.h[1], 4.6, 4.2); ctx.fillStyle = "#4a3a32"; ell(aF.h[0] + 1, aF.h[1] + 1, 2.2, 1.8);
-  if (P.beat && Math.abs(P.beat) > .7) { ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 1.5 / RK; for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.arc(chest[0] + 12, chest[1] + 6, 7 + i * 5, -.6, .6); ctx.stroke(); } }
+  if (P.beat && Math.abs(P.beat) > .7) { ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 1.5 / rk; for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.arc(chest[0] + 12, chest[1] + 6, 7 + i * 5, -.6, .6); ctx.stroke(); } }
   ctx.restore();
 }
+
+// ---------- Bosta brilhante (bônus) e gorila do balão ----------
+let shiny = null, balloonEvt = null, drips = [];
+function trySpawnShiny() {
+  if (shiny || Math.random() > 0.3) return;
+  for (let k = 0; k < 40; k++) {
+    const sx = rand(220, W - 220), top = surfaceAt(Math.round(sx)), sy = top - rand(90, 200);
+    if (sy < 70 || sy > WATER - 60) continue;
+    let ok = true;
+    for (let a = 0; a < 6.28; a += 0.8) if (S(sx + Math.cos(a) * 22, sy + Math.sin(a) * 22)) { ok = false; break; }
+    if (ok && gorillas.every(g => g.dead || Math.hypot(g.x - sx, g.y - 20 - sy) > 90)) { shiny = { x: sx, y: sy, turns: 6, t: 0 }; return; }
+  }
+}
+function collectShiny() {
+  const team = shooterTeam;
+  for (let i = 0; i < 30; i++) { const a = rand(0, 6.28), s = rand(60, 180); particles.push({ kind: "spark", x: shiny.x, y: shiny.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rand(.6, 1.1), t: 0, size: rand(2, 4) }); }
+  if (team !== null && teams[team]) { teams[team].ammo.balao = (teams[team].ammo.balao || 0) + 1; addText(shiny.x, shiny.y - 18, t("bonus"), "#ffd23f"); }
+  sndPlop(); shiny = null;
+}
+function startBalloon(target) {
+  const fromLeft = target.x > W / 2;
+  balloonEvt = { target, t: 0, from: fromLeft ? -120 : W + 120, to: fromLeft ? W + 140 : -140, dealt: 0, prt: false, hng: false };
+}
+// tempos do evento (s)
+const BA = { arrive: 2.0, point: 2.8, sit: 3.3, strain: 3.9, flow: 5.9, back: 6.3, leave: 7.8 };
+const BS = 0.55, PRK = 0.93;
+function balloonUpdate(dt) {
+  const e = balloonEvt; if (!e) return;
+  e.t += dt;
+  const g = e.target, tt = e.t;
+  if (g.gone) { if (tt < BA.back) e.t = BA.back; }
+  else {
+    if (tt < BA.strain) { g.lookUpT = 0.15; }
+    if (tt >= BA.strain && tt < BA.flow) {
+      g.hitT = Math.max(g.hitT, 0.2);
+      g.cover = Math.min(1, (g.cover || 0) + dt * 0.8);
+      if (!e.prt) { e.prt = true; sndFart(true); addText(g.x, g.y - 70, "-" + Math.round(Math.min(80, g.hp)), teams[g.team].color); }
+      const dmg = Math.min(80 - e.dealt, 80 * dt / (BA.flow - BA.strain));
+      e.dealt += dmg; g.hp = Math.max(0, g.hp - dmg);
+      if (Math.random() < dt * 4) sndSplat(false);
+    }
+  }
+  camFocus = { x: g.x, y: g.y - 90 };
+  if (e.t >= BA.leave) { balloonEvt = null; }
+}
+function balloonGeom() {
+  const e = balloonEvt, g = e.target, tt = e.t, hoverY = Math.max(70, g.y - 175);
+  let bx, by, sway = 0;
+  const sitK = smooth(seg01(tt, BA.point, BA.sit)) * (1 - smooth(seg01(tt, BA.flow, BA.back)));
+  if (tt < BA.arrive) { const u = smooth(tt / BA.arrive); bx = e.from + (g.x - e.from) * u; by = hoverY - 80 * (1 - u); sway = Math.sin(tt * 3) * .06 * (1 - u); }
+  else if (tt < BA.back) { bx = g.x - BS * 36 * sitK + (sitK > 0 ? 0 : Math.sin(time * 1.3) * 2); by = hoverY + Math.sin(time * 2) * (sitK > .9 ? 1 : 3); }
+  else { const u = smooth(seg01(tt, BA.back, BA.leave)); bx = g.x + (e.to - g.x) * u; by = hoverY - 90 * u; sway = -.05 * u; }
+  return { bx, by, sway, sitK, hoverY };
+}
+function seg01(t, a, b) { return clamp((t - a) / (b - a), 0, 1); }
+function smooth(k) { k = clamp(k, 0, 1); return k * k * (3 - 2 * k); }
+function drawEnvelope(t, flame) {
+  const R = 44, cy = -86, cols = ["#e5484d", "#ffd23f", "#3e8ed0", "#ffd23f", "#e5484d", "#ffd23f", "#3e8ed0"];
+  ctx.save(); ctx.beginPath(); ctx.ellipse(0, cy, R, R * 1.08, 0, 0, 7); ctx.clip();
+  for (let i = 0; i < 7; i++) { ctx.fillStyle = cols[i]; ctx.beginPath(); ctx.ellipse(0, cy, R * (1 - i / 7), R * 1.08, 0, 0, 7); ctx.fill(); }
+  ctx.restore();
+  ctx.fillStyle = "#e5484d"; ctx.beginPath(); ctx.moveTo(-26, cy + R * .86); ctx.quadraticCurveTo(-18, -28, -12, -26); ctx.lineTo(12, -26); ctx.quadraticCurveTo(18, -28, 26, cy + R * .86); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,.28)"; ell(-16, cy - 18, 8, 18, -.35);
+  ctx.strokeStyle = "#5b3a1e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-12, -26); ctx.lineTo(12, -26); ctx.stroke();
+  if (flame > 0) { ctx.fillStyle = "#ff9a2e"; ell(0, -30, 4 * flame, (6 + Math.sin(t * 30) * 2) * flame); ctx.fillStyle = "#ffe07a"; ell(0, -28, 2 * flame, 3 * flame); }
+  ctx.strokeStyle = "#5b3a1e"; ctx.lineWidth = 1.4;
+  for (const [sx, ex] of [[-12, -30], [12, 30]]) { ctx.beginPath(); ctx.moveTo(sx, -26); ctx.lineTo(ex, 8); ctx.stroke(); }
+}
+function drawBasket(front) {
+  if (!front) { ctx.fillStyle = "#7a5228"; ctx.fillRect(-32, 8, 64, 36); return; }
+  ctx.fillStyle = "#a0703a"; ctx.beginPath(); ctx.moveTo(-32, 8); ctx.lineTo(32, 8); ctx.lineTo(28, 44); ctx.lineTo(-28, 44); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = "#6b4520"; ctx.lineWidth = 1.4;
+  for (let i = -26; i < 30; i += 7) { ctx.beginPath(); ctx.moveTo(i, 9); ctx.lineTo(i * .9, 44); ctx.stroke(); }
+  for (let j = 16; j < 44; j += 8) { ctx.beginPath(); ctx.moveTo(-31 + j * .1, j); ctx.lineTo(31 - j * .1, j); ctx.stroke(); }
+  ctx.fillStyle = "#6b4520"; ctx.fillRect(-34, 5, 68, 6); ctx.fillStyle = "#8c5d2e"; ctx.fillRect(-34, 5, 68, 2);
+  ctx.fillStyle = "#3e8ed0"; ctx.fillRect(-20, 22, 40, 10); ctx.fillStyle = "#fff"; ctx.font = "700 8px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.fillText("BOSTA AIR", 0, 30);
+}
+const pilot = { x: 0, y: 0, face: 1, rk: PRK, bandColor: "#7c4dff", ph: 5, blinkT: 0, spots: [], spotT: 0, hurtT: 0, hitT: 0, team: 0 };
+function drawBalloon() {
+  const e = balloonEvt; if (!e) return;
+  const G = balloonGeom(), tt = e.t, lp2 = (p, q, k) => [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k];
+  ctx.save(); ctx.translate(G.bx, G.by); ctx.scale(BS, BS); ctx.rotate(G.sway);
+  const flame = (tt < BA.arrive || tt > BA.back) ? 1 : .4 + .3 * Math.sin(time * 3);
+  drawEnvelope(time, flame); drawBasket(false);
+  let PP, inFront = false;
+  pilot.face = 1; pilot.x = 0; pilot.y = 44;
+  if (tt < BA.arrive || tt >= BA.back - 0.05) {
+    const w = Math.sin(time * 9);
+    PP = { hip: [0, -26], torso: .08, handF: [14 + w * 4, -82 + w * 6], handB: [-14, -56], footF: [4, 0], footB: [-5, 0], mouth: tt > BA.back ? "o" : "laugh", hr: -.1, goggles: 1, bendF: -1, bendB: 1 };
+  } else if (tt < BA.point) {
+    const k = smooth(seg01(tt, BA.arrive, BA.arrive + .35));
+    PP = { hip: [0, -26], torso: .08 + .47 * k, handF: lp2([14, -56], [46, -30], k), handB: [-12, -56], footF: [4, 0], footB: [-5, 0], mouth: "laugh", hr: -.1 + .65 * k + Math.sin(time * 14) * .05 * k, lookY: 1, goggles: 1, bendF: -1, bendB: 1 };
+  } else {
+    const k = G.sitK; inFront = k > .5;
+    pilot.face = -1; pilot.x = 36 * k; pilot.y = 44 + (10 - 44) * k;
+    const toL = (wx, wy) => [(wx - pilot.x) / (PRK * pilot.face), (wy - pilot.y) / PRK];
+    const strain = tt >= BA.sit && tt < BA.strain, flow = tt >= BA.strain && tt < BA.flow, relief = tt >= BA.flow - .5 && tt < BA.back;
+    PP = { hip: [0, -26 + 24 * k], torso: .08 * (1 - k), handF: lp2([14, -56], toL(-24, -20), k), handB: lp2([-12, -56], toL(20, -20), k), footF: [16, 14], footB: [10, 16], kneeF: 1, kneeB: 1,
+      butt: k > .5 ? 1 : 0, dil: strain ? .4 + Math.sin(time * 40) * .15 : flow ? 1 : 0, hr: -.1 - 1.15 * k,
+      eyes: strain ? "squint" : relief ? "bliss" : flow ? "half" : "n", mouth: strain ? "grit" : relief ? "n" : "o", sweat: strain || flow, blush: strain ? 1 : 0, goggles: 1, bendF: -1, bendB: -1, rot: strain ? Math.sin(time * 45) * .03 : 0 };
+    if (strain && !e.hng) { e.hng = true; addText(G.bx + 40, G.by - 10, "Hnnnngh…", "#5b3a1e"); }
+  }
+  if (!inFront) { drawRig(pilot, PP, pilot.face); drawBasket(true); } else { drawBasket(true); drawRig(pilot, PP, pilot.face); }
+  ctx.restore();
+  // diarreia: sai do esfíncter (bem em cima da cabeça do alvo)
+  if (inFront && tt >= BA.strain && tt < BA.flow - .2 && !e.target.gone) {
+    const ax = G.bx + BS * (pilot.x), ay = G.by + BS * (pilot.y + PRK * (R_ANUS - 2));
+    if (!e.prtText) { e.prtText = true; addText(ax + 30, ay + 10, "PRRRRRT!", "#6b3e1f"); }
+    const pulse = .6 + .4 * Math.max(0, Math.sin(e.t * 9));
+    for (let i = 0; i < Math.round(3 * pulse); i++) drips.push({ x: ax + rand(-1.5, 1.5), y: ay + 2, vx: rand(-3, 3) + (e.target.x - ax) * .4, vy: rand(30, 70), r: rand(1.2, 2.4) * (0.7 + pulse * .5) });
+    if (Math.random() < .3) particles.push({ kind: "stink", x: ax, y: ay + 4, vx: rand(-10, 10), vy: -10, life: 1.2, t: 0, size: rand(4, 7), ph: rand(0, 6) });
+  }
+}
+function updateDrips(dt) {
+  const g = balloonEvt ? balloonEvt.target : null;
+  for (let i = drips.length - 1; i >= 0; i--) {
+    const d = drips[i]; d.vy += 520 * dt; d.x += d.vx * dt; d.y += d.vy * dt;
+    let gone = false;
+    if (g && !g.gone && d.y >= g.y - 36 && Math.abs(d.x - g.x) < 11) {
+      if (Math.random() < .5) particles.push({ kind: "chunk", x: d.x, y: g.y - 36, vx: (Math.random() < .5 ? -1 : 1) * rand(30, 80), vy: rand(-80, -20), life: .7, t: 0, size: rand(1.4, 2.4), color: "#6b3e1f" });
+      if (Math.random() < .25) particles.push({ kind: "chunk", x: g.x + rand(-9, 9), y: g.y - 30, vx: 0, vy: 30, life: .6, t: 0, size: 1.6, color: "#5e3518" });
+      gone = true;
+    } else if (S(d.x, d.y) || d.y > WATER) { if (Math.random() < .4) particles.push({ kind: "chunk", x: d.x, y: d.y - 2, vx: rand(-50, 50), vy: rand(-60, -10), life: .5, t: 0, size: 1.6, color: "#6b3e1f" }); gone = true; }
+    if (gone) drips.splice(i, 1);
+  }
+}
+function drawDrips() { for (const d of drips) { ctx.fillStyle = "#6b3e1f"; ell(d.x, d.y, d.r * .8, d.r * 1.6); ctx.fillStyle = "#8f5a2e"; ell(d.x - .4, d.y - .6, d.r * .3, d.r * .5); } }
+function drawShiny() {
+  if (!shiny) return;
+  const sy = shiny.y + Math.sin(time * 2) * 6;
+  ctx.globalAlpha = .3 + .15 * Math.sin(time * 6); ctx.fillStyle = "#fff3a0"; ell(shiny.x, sy, 20, 20); ctx.globalAlpha = 1;
+  drawPoop(shiny.x, sy, 1.05, Math.sin(time * 2) * .15, "balao");
+  for (let i = 0; i < 4; i++) { const a = time * 2 + i * 1.57; drawSpark(shiny.x + Math.cos(a) * 18, sy + Math.sin(a) * 18, 3 + Math.sin(time * 8 + i) * 1.2, "#fff7c0"); }
+}
+function drawSpark(px, py, r, c) { ctx.fillStyle = c; ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rr = i % 2 ? r * .38 : r; ctx.lineTo(px + Math.cos(a) * rr, py + Math.sin(a) * rr); } ctx.fill(); }
 
 function drawButtPose(g, isActive) {
   const T = teams[g.team], a = g.aim * Math.PI / 180;
@@ -1381,8 +1548,12 @@ function render() {
 
   for (const g of gorillas) if (!g.gone) drawGorilla(g);
   drawAim();
+  drawDrips();
+  drawBalloon();
 
+  drawShiny();
   for (const p of projectiles) {
+    if (p.type === "balao") { ctx.globalAlpha = .4; ctx.fillStyle = "#fff3a0"; ell(p.x, p.y, 10, 10); ctx.globalAlpha = 1; if (Math.random() < .5) particles.push({ kind: "spark", x: p.x, y: p.y, vx: 0, vy: 0, life: .5, t: 0, size: 2.5 }); }
     drawPoop(p.x, p.y, WEAP[p.type].size * (p.s0 + (1 - p.s0) * Math.min(1, p.age * 3)), p.rot, p.type);
     if (p.type !== "mini") drawFlies(p.x, p.y, 2, 14);
   }
@@ -1393,6 +1564,8 @@ function render() {
     else if (p.kind === "stink") {
       ctx.globalAlpha = 0.35 * f; ctx.fillStyle = "#8fbf3a";
       ell(p.x + Math.sin(p.t * 3 + p.ph) * 6, p.y, p.size * (1 + p.t * 0.5), p.size * 0.8 * (1 + p.t * 0.5));
+    } else if (p.kind === "spark") {
+      ctx.globalAlpha = f; drawSpark(p.x, p.y, p.size * (0.5 + f), "#fff0a0");
     } else if (p.kind === "dust") {
       ctx.globalAlpha = 0.55 * f; ctx.fillStyle = "#c8a77a";
       ell(p.x, p.y, p.size * (1 + p.t * 3), p.size * 0.7 * (1 + p.t * 2));
