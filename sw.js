@@ -1,5 +1,5 @@
 // Gorilas: funciona offline depois da primeira visita.
-const CACHE = "gorilas-v18";
+const CACHE = "gorilas-v19";
 const FILES = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -18,10 +18,13 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
 
-  // Página do jogo: tenta a internet primeiro (para receber atualizações), senão usa a cópia guardada.
+  // Arquivo de versão: sempre da internet (o jogo usa para saber se há atualização).
+  if (url.origin === self.location.origin && url.pathname.endsWith("/version.json")) return;
+
+  // Página do jogo: sempre tenta a internet primeiro, sem cache do navegador, para receber atualizações.
   if (req.mode === "navigate") {
     e.respondWith(
-      fetch(req).then(res => {
+      fetch(req, { cache: "no-store" }).then(res => {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put("./index.html", copy));
         return res;
