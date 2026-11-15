@@ -734,8 +734,14 @@ function drown(g) {
   addText(g.x, WATER - 40, t("glub"), "#fff");
   sndPlop();
 }
+// Fogo amigo: um companheiro de time só consegue deixar o outro com no mínimo 1 de vida
+// (depois disso, só o impacto e o arremesso continuam valendo). O próprio atirador leva dano normal.
+function friendlyHit(g) { return shooterTeam !== null && g.team === shooterTeam && g !== shooterG; }
+function friendlyCap(g, d) { return friendlyHit(g) ? Math.max(0, Math.min(d, g.hp - 1)) : d; }
 function hurt(g, d) {
   if (g.dead) return;
+  d = friendlyCap(g, d);
+  if (d <= 0) { g.hurtT = 0.3; return; }
   g.hp = Math.max(0, g.hp - d);
   g.hurtT = 0.5;
   addText(g.x, g.y - 52, "-" + d, teams[g.team].color);
@@ -913,12 +919,12 @@ let projId = 0;
 function spawnProj(x, y, vx, vy, type, owner) {
   projectiles.push({ id: ++projId, x, y, vx, vy, type, owner, age: 0, rot: owner ? Math.atan2(vx, -vy) : 0, spin: type === "bumer" ? (vx < 0 ? -16 : 16) : rand(-8, 8), s0: owner && type !== "bumer" ? clamp(rPoopS(Math.max(0.06, power)) * RK / WEAP[type].size, 0.2, 1) : 1 });
 }
-let shooterTeam = null, shotHit = false;
+let shooterTeam = null, shooterG = null, shotHit = false;
 function fire() {
   if (state !== "aim") return;
   charging = false; drag = null; if (net) net.remoteDrag = false;
   const g = active;
-  shooterTeam = g.team; shotHit = false;
+  shooterTeam = g.team; shooterG = g; shotHit = false;
   const a = g.aim * Math.PI / 180;
   const sp = Math.max(0.06, power) * MAXV * powMul(g);
   const L = launchFrom(g);
@@ -1040,7 +1046,7 @@ function processDeaths() {
     waitT = Math.max(waitT, 1.5);
   }
   botEmotes();
-  shooterTeam = null;
+  shooterTeam = null; shooterG = null;
 }
 let matchId = 0;
 function gameOver(team) {
@@ -2149,8 +2155,8 @@ function balloonUpdate(dt) {
     if (tt >= BA.strain && tt < BA.flow) {
       g.hitT = Math.max(g.hitT, 0.2);
       g.cover = Math.min(1, (g.cover || 0) + dt * 0.8);
-      if (!e.prt) { e.prt = true; sndFart(true); addText(g.x, g.y - 70, "-" + Math.round(Math.min(80, g.hp)), teams[g.team].color); }
-      const dmg = Math.min(80 - e.dealt, 80 * dt / (BA.flow - BA.strain));
+      if (!e.prt) { e.prt = true; sndFart(true); const tot = friendlyCap(g, Math.min(80, g.hp)); if (tot >= 1) addText(g.x, g.y - 70, "-" + Math.round(tot), teams[g.team].color); }
+      const dmg = friendlyCap(g, Math.min(80 - e.dealt, 80 * dt / (BA.flow - BA.strain)));
       e.dealt += dmg; g.hp = Math.max(0, g.hp - dmg);
       if (Math.random() < dt * 2.5) sndSplat(false, true);
     }
@@ -3007,7 +3013,7 @@ window.gorilasT = t;
   }
   // Atualização automática: confere se há versão nova ao abrir, ao voltar para o app e a cada 10 minutos.
   // No menu, recarrega sozinho; no meio de uma partida, mostra um aviso para não interromper o jogo.
-  const BUILD = "v21";
+  const BUILD = "v22";
   let banner = null, pending = false, latest = "";
   const busy = () => { try { return window.gorilasBusy && window.gorilasBusy(); } catch (e) { return false; } };
   const tr = k => (window.gorilasT ? window.gorilasT(k) : k);
