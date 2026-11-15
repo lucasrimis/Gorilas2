@@ -379,7 +379,7 @@ function S(x, y) {
 // ---------- Som ----------
 let AC = null;
 function audioInit() {
-  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } if (AC) setTimeout(warmSounds, 300); }
   if (AC && AC.state === "suspended") AC.resume().catch(() => {});
 }
 function env(g, t, peak, dur) {
@@ -387,34 +387,126 @@ function env(g, t, peak, dur) {
   g.gain.exponentialRampToValueAtTime(peak, t + 0.02);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
 }
+// --- Sons realistas (gerados amostra por amostra, com cache) ---
+let MASTER = null, REV = null;
+const R_ = Math.random;
+function sndBus() {
+  if (MASTER) return;
+  MASTER = AC.createDynamicsCompressor(); MASTER.threshold.value = -14; MASTER.ratio.value = 4;
+  const mg = AC.createGain(); mg.gain.value = 0.8; MASTER.connect(mg); mg.connect(AC.destination);
+  const sr = AC.sampleRate, len = Math.floor(sr * .35), ir = AC.createBuffer(2, len, sr);
+  for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); let lp = 0; for (let i = 0; i < len; i++) { lp = lp * .7 + (R_() * 2 - 1) * .3; d[i] = lp * Math.pow(1 - i / len, 3); } }
+  REV = AC.createConvolver(); REV.buffer = ir; const rg = AC.createGain(); rg.gain.value = .22; REV.connect(rg); rg.connect(MASTER);
+}
+function sPlay(buf, t, chain, vol, wet) {
+  const s = AC.createBufferSource(); s.buffer = buf; let n = s;
+  for (const f of chain) { n.connect(f); n = f; }
+  const g = AC.createGain(); g.gain.value = vol; n.connect(g); g.connect(MASTER);
+  const w = AC.createGain(); w.gain.value = wet; g.connect(w); w.connect(REV);
+  s.start(t);
+}
+function bq(type, f, q, gain) { const b = AC.createBiquadFilter(); b.type = type; b.frequency.value = f; if (q != null) b.Q.value = q; if (gain != null) b.gain.value = gain; return b; }
+function sBuf(d, fill) {
+  const sr = AC.sampleRate, N = Math.floor(sr * d), b = AC.createBuffer(1, N, sr), a = b.getChannelData(0);
+  fill(a, sr, N); let m = 0; for (let i = 0; i < N; i++) m = Math.max(m, Math.abs(a[i]));
+  if (m > 0) for (let i = 0; i < N; i++) a[i] /= m; return b;
+}
+function fartBuf(o) {
+  return sBuf(o.dur, (a, sr, N) => {
+    let ph = 0, drift = 0, pa = 1, gate = 1, lp = 0, wetLp = 0, stut = 0;
+    for (let i = 0; i < N; i++) {
+      const t = i / sr, u = t / o.dur;
+      if ((i & 63) === 0) { drift += (R_() - .5) * o.jit; drift *= .985; }
+      const f = (o.f0 + (o.f1 - o.f0) * Math.pow(u, o.curve || 1)) * (1 + drift);
+      ph += f / sr;
+      if (ph >= 1) { ph -= 1; pa = .55 + R_() * .9; if (stut > 0) stut--; else if (R_() < o.stutter) stut = 1 + Math.floor(R_() * o.gap); }
+      gate += ((stut > 0 ? .03 : 1) - gate) * .02;
+      const pulse = (ph < .06 ? ph / .06 : Math.exp(-(ph - .06) * o.flap)) * pa;
+      lp += (R_() * 2 - 1 - lp) * .25;
+      let s = pulse * (1 - o.air) + lp * pulse * o.air * 1.6;
+      wetLp += (R_() * 2 - 1 - wetLp) * .6;
+      if (o.wet && R_() < o.wet * .004) s += (R_() * 2 - 1) * 1.4;
+      s += wetLp * o.wet * .25 * pulse;
+      const e = Math.min(1, t / .015) * Math.min(1, (o.dur - t) / .08) * (1 + (o.trem || 0) * Math.sin(t * 2 * Math.PI * (o.tremF || 6)));
+      a[i] = s * e * gate;
+    }
+  });
+}
+function bubblesBuf(d, n, lo, hi) {
+  return sBuf(d, (a, sr, N) => {
+    for (let k = 0; k < n; k++) {
+      const st = Math.floor(R_() * N * .85), f0 = lo + R_() * (hi - lo), len = Math.floor(sr * (.012 + R_() * .03)), amp = .4 + R_() * .6; let ph = 0;
+      for (let i = 0; i < len && st + i < N; i++) { const u = i / len; ph += f0 * (1 + u * 1.8) / sr; a[st + i] += Math.sin(ph * 2 * Math.PI) * amp * Math.exp(-u * 5) * Math.min(1, i / (sr * .001)); }
+    }
+  });
+}
+function splatBuf(o) {
+  return sBuf(o.dur, (a, sr, N) => {
+    let lp = 0, lp2 = 0, ph = 0, mod = 1, mt = 0;
+    for (let i = 0; i < N; i++) {
+      const t = i / sr;
+      const th = Math.sin(ph) * Math.exp(-t / o.thumpDec) * o.thump; ph += 2 * Math.PI * (o.thumpF * (1 + Math.exp(-t * 30))) / sr;
+      const k = .02 + .5 * Math.exp(-t * o.dark); lp += (R_() * 2 - 1 - lp) * k; lp2 += (lp - lp2) * k;
+      if (t > mt) { mt = t + .012 + R_() * .035; mod = R_() < .35 ? .15 : .6 + R_() * .8; }
+      a[i] = th + lp2 * Math.exp(-t / o.bodyDec) * mod * o.body * (1 + Math.sin(t * 2 * Math.PI * o.sq) * .6);
+    }
+    for (let k = 0; k < o.drops; k++) {
+      const st = Math.floor(sr * (.02 + R_() * o.dropSpread)), len = Math.floor(sr * (.002 + R_() * .006)), amp = (.15 + R_() * .35) * Math.exp(-st / sr / o.dropSpread * 1.5); let prev = 0;
+      for (let i = 0; i < len && st + i < N; i++) { const v = R_() * 2 - 1; a[st + i] += (v - prev) * amp * Math.exp(-i / len * 4); prev = v; }
+    }
+    if (o.suck) { const st = Math.floor(sr * o.suck), len = Math.floor(sr * .09); let p2 = 0; for (let i = 0; i < len && st + i < N; i++) { const u = i / len; p2 += (420 - 300 * u) / sr; a[st + i] += Math.sin(p2 * 2 * Math.PI) * .35 * Math.sin(Math.PI * u) + (R_() * 2 - 1) * .08 * (1 - u); } }
+  });
+}
+// R2 = peido molhado (tiro normal), R4 = peido gordo (Mega Bosta e balão)
+const FART_P = {
+  wet: { dur: .75, f0: 95, f1: 62, jit: .08, flap: 6, air: .5, stutter: .05, gap: 3, wet: 1, formant: 230, lp: 1400, trem: .25, tremF: 7 },
+  fat: { dur: 1.4, f0: 70, f1: 45, jit: .07, flap: 5, air: .45, stutter: .04, gap: 3, wet: .8, formant: 190, lp: 1100, trem: .3, tremF: 5, curve: .7 },
+};
+// G2 = lama chupando (normal), Q2 = splat gigante (Mega Bosta)
+const SPLAT_P = {
+  mud: { dur: .85, thump: .6, thumpF: 60, thumpDec: .06, body: 1.4, bodyDec: .3, dark: 6, sq: 33, drops: 15, dropSpread: .5, suck: .6, res: 260, lp: 1800, bub: 8 },
+  mega: { dur: 1.3, thump: 1.2, thumpF: 48, thumpDec: .12, body: 1.6, bodyDec: .35, dark: 5, sq: 18, drops: 70, dropSpread: .9, suck: 1.05, res: 220, lp: 2200, bub: 16 },
+};
+const sndCache = {};
+function cached(key, make) { // 3 variações de cada som, geradas uma vez
+  const c = sndCache[key] || (sndCache[key] = []);
+  if (c.length < 3) { const v = make(); c.push(v); return v; }
+  return c[Math.floor(R_() * c.length)];
+}
+function playFart(kind, vol) {
+  sndBus(); const o = FART_P[kind], t = AC.currentTime + 0.01;
+  const v = cached("f" + kind, () => ({ b: fartBuf(o), bub: bubblesBuf(o.dur, Math.round(o.dur * 30 * o.wet), 220, 700) }));
+  sPlay(v.b, t, [bq("highpass", 35, .7), bq("peaking", o.formant, 2.5, 9), bq("peaking", o.formant * 2.7, 3, 4), bq("lowpass", o.lp, .8)], vol, .9);
+  sPlay(v.bub, t + .03, [bq("bandpass", 600, 1)], vol * .45 * o.wet, .6);
+}
+function playSplat(kind, vol) {
+  sndBus(); const o = SPLAT_P[kind], t = AC.currentTime + 0.01;
+  const v = cached("s" + kind, () => ({ b: splatBuf(o), bub: bubblesBuf(o.dur + .3, o.bub, 150, 500) }));
+  sPlay(v.b, t, [bq("highpass", 30, .7), bq("peaking", o.res, 1.6, 7), bq("lowpass", o.lp, .7)], vol, .8);
+  sPlay(v.bub, t + .12, [bq("bandpass", 450, 1.2)], vol * .4, .6);
+}
+function warmSounds() { // pré-gera as variações aos poucos, sem travar o jogo
+  const jobs = [];
+  for (let i = 0; i < 3; i++) for (const k of ["wet", "fat"]) jobs.push(() => warmOne("f" + k, () => { const o = FART_P[k]; return { b: fartBuf(o), bub: bubblesBuf(o.dur, Math.round(o.dur * 30 * o.wet), 220, 700) }; }));
+  for (let i = 0; i < 3; i++) for (const k of ["mud", "mega"]) jobs.push(() => warmOne("s" + k, () => { const o = SPLAT_P[k]; return { b: splatBuf(o), bub: bubblesBuf(o.dur + .3, o.bub, 150, 500) }; }));
+  const next = () => { const j = jobs.shift(); if (!j) return; j(); setTimeout(next, 120); };
+  next();
+}
+function warmOne(key, make) { const c = sndCache[key] || (sndCache[key] = []); if (c.length < 3) c.push(make()); }
 function sndFart(big) {
   netEvent({ s: "sndFart", a: [big] });
   if (!AC || muted) return;
-  const t = AC.currentTime, d = big ? 0.8 : 0.45;
-  const o = AC.createOscillator(); o.type = "sawtooth";
-  o.frequency.setValueAtTime(big ? 80 : 115, t);
-  o.frequency.exponentialRampToValueAtTime(big ? 38 : 55, t + d);
-  const l = AC.createOscillator(); l.frequency.value = rand(22, 32);
-  const lg = AC.createGain(); lg.gain.value = 30; l.connect(lg); lg.connect(o.frequency);
-  const f = AC.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 650;
-  const g = AC.createGain(); env(g, t, 0.35, d);
-  o.connect(f); f.connect(g); g.connect(AC.destination);
-  o.start(t); l.start(t); o.stop(t + d + 0.05); l.stop(t + d + 0.05);
+  playFart(big ? "fat" : "wet", 1);
+}
+function sndSplat(big, soft) {
+  netEvent({ s: "sndSplat", a: [big, soft] });
+  if (!AC || muted) return;
+  playSplat(big ? "mega" : "mud", soft ? 0.45 : (big ? 1.1 : 1));
 }
 function noiseBuf(d) {
   const b = AC.createBuffer(1, Math.floor(AC.sampleRate * d), AC.sampleRate);
   const a = b.getChannelData(0); for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1;
   return b;
-}
-function sndSplat(big) {
-  netEvent({ s: "sndSplat", a: [big] });
-  if (!AC || muted) return;
-  const t = AC.currentTime, d = big ? 0.9 : 0.45;
-  const s = AC.createBufferSource(); s.buffer = noiseBuf(d);
-  const f = AC.createBiquadFilter(); f.type = "lowpass";
-  f.frequency.setValueAtTime(big ? 1200 : 1600, t); f.frequency.exponentialRampToValueAtTime(120, t + d);
-  const g = AC.createGain(); env(g, t, big ? 0.9 : 0.6, d);
-  s.connect(f); f.connect(g); g.connect(AC.destination); s.start(t);
 }
 function sndOoh() {
   netEvent({ s: "sndOoh", a: [] });
@@ -1864,7 +1956,7 @@ function balloonUpdate(dt) {
       if (!e.prt) { e.prt = true; sndFart(true); addText(g.x, g.y - 70, "-" + Math.round(Math.min(80, g.hp)), teams[g.team].color); }
       const dmg = Math.min(80 - e.dealt, 80 * dt / (BA.flow - BA.strain));
       e.dealt += dmg; g.hp = Math.max(0, g.hp - dmg);
-      if (Math.random() < dt * 4) sndSplat(false);
+      if (Math.random() < dt * 2.5) sndSplat(false, true);
     }
   }
   camFocus = { x: g.x, y: g.y - 90 };
