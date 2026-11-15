@@ -255,7 +255,7 @@ const WEAP = {
   grude:  { name: "Bosta Grudenta", icon: "🍯💩", r: 30, dmg: 22, size: 1.0, color: "#6f6a1c", hi: "#a39a2e" },
   mini:   { name: "mini",         icon: "",       r: 17, dmg: 16, size: 0.55 },
   balao:  { name: "Bosta-Balão",  icon: "🎈💩",   r: 20, dmg: 10, size: 1.0, color: "#e0a020", hi: "#fff2a8" },
-  bumer:  { name: "Bosta Bumerangue", icon: "🪃💩", r: 24, dmg: 20, size: 1.3 },
+  bumer:  { name: "Bosta Bumerangue", icon: "🪃💩", r: 24, dmg: 20, size: 1.05 },
 };
 const WEAP_ORDER = ["bosta", "tripla", "grude", "bumer", "mega", "balao"];
 const AMMO = { bosta: Infinity, tripla: 2, grude: 2, bumer: 1, mega: 1, balao: 0 };
@@ -819,7 +819,7 @@ function bumerCatch(p) {
   const g = p.owner; if (!g || g.dead) return;
   teams[g.team].ammo.bumer = (teams[g.team].ammo.bumer || 0) + 1;
   addText(g.x, g.y - 64, t("caught"), "#f2c14e");
-  g.throwT = 0.4; camFocus = { x: g.x, y: g.y - 30 };
+  bumCatchAnim(gorillas.indexOf(g)); camFocus = { x: g.x, y: g.y - 30 };
   sndPlop();
 }
 function projStep(p, dt) {
@@ -846,10 +846,11 @@ function launchAt(g, face, aimDeg, out) {
   const a = aimDeg * Math.PI / 180;
   return { x: g.x + face * Math.cos(a) * out, y: g.y - 15 - Math.sin(a) * out };
 }
-function launchFrom(g) { return buttPoint(g, g.face, g.aim, Math.max(0.06, power)); }
+function bumerHand(g, face) { return { x: g.x + face * RK * 26, y: g.y - RK * 44 }; }
+function launchFrom(g) { return weapon === "bumer" ? bumerHand(g, g.face) : buttPoint(g, g.face, g.aim, Math.max(0.06, power)); }
 let projId = 0;
 function spawnProj(x, y, vx, vy, type, owner) {
-  projectiles.push({ id: ++projId, x, y, vx, vy, type, owner, age: 0, rot: owner ? Math.atan2(vx, -vy) : 0, spin: type === "bumer" ? (vx < 0 ? -16 : 16) : rand(-8, 8), s0: owner ? clamp(rPoopS(Math.max(0.06, power)) * RK / WEAP[type].size, 0.2, 1) : 1 });
+  projectiles.push({ id: ++projId, x, y, vx, vy, type, owner, age: 0, rot: owner ? Math.atan2(vx, -vy) : 0, spin: type === "bumer" ? (vx < 0 ? -16 : 16) : rand(-8, 8), s0: owner && type !== "bumer" ? clamp(rPoopS(Math.max(0.06, power)) * RK / WEAP[type].size, 0.2, 1) : 1 });
 }
 let shooterTeam = null, shotHit = false;
 function fire() {
@@ -864,8 +865,8 @@ function fire() {
   const T = teams[g.team];
   if (T.ammo[weapon] !== Infinity) T.ammo[weapon]--;
   g.throwT = 0.35;
-  sndFart(weapon === "mega");
-  for (let i = 0; i < 6; i++) particles.push({ kind: "stink", x: L.x + rand(-4, 4), y: L.y + rand(-4, 4), vx: -Math.cos(a) * g.face * rand(20, 60), vy: Math.sin(a) * rand(20, 60) - 10, life: rand(0.8, 1.4), t: 0, size: rand(4, 8), ph: rand(0, 6) });
+  if (weapon === "bumer") sndWhoosh(); else sndFart(weapon === "mega");
+  if (weapon !== "bumer") for (let i = 0; i < 6; i++) particles.push({ kind: "stink", x: L.x + rand(-4, 4), y: L.y + rand(-4, 4), vx: -Math.cos(a) * g.face * rand(20, 60), vy: Math.sin(a) * rand(20, 60) - 10, life: rand(0.8, 1.4), t: 0, size: rand(4, 8), ph: rand(0, 6) });
   state = "fly"; power = 0;
 }
 function carveCrater(x, y, r) {
@@ -1245,16 +1246,22 @@ function update(dt) {
 
 // ---------- Desenho ----------
 function ell(x, y, rx, ry) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); }
-function drawBumer(x, y, s, rot) {
+function drawBumer(x, y, s, rot, dirt) {
+  if (dirt == null) dirt = 1;
   ctx.save(); ctx.translate(x, y); ctx.rotate(rot || 0); ctx.scale(s, s);
   ctx.lineCap = "round"; ctx.lineJoin = "round";
   const arm = () => { ctx.beginPath(); ctx.moveTo(-9, -9); ctx.quadraticCurveTo(-1, -6, 5, 0); ctx.quadraticCurveTo(-1, 6, -9, 9); };
-  ctx.strokeStyle = "#3d220f"; ctx.lineWidth = 8.2; arm(); ctx.stroke();
-  ctx.strokeStyle = "#5e3518"; ctx.lineWidth = 6.4; arm(); ctx.stroke();
-  ctx.strokeStyle = "#8f5a2e"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-8, -10); ctx.quadraticCurveTo(-1, -7.5, 4, -1.5); ctx.stroke();
-  ctx.fillStyle = "#f2c14e";
-  for (const [dx, dy] of [[-6.5, -7.3], [-2.5, -4.6], [1.6, -1.7], [1.6, 1.7], [-2.5, 4.6], [-6.5, 7.3]]) { ctx.beginPath(); ctx.arc(dx, dy, 1.15, 0, 7); ctx.fill(); }
-  ctx.fillStyle = "#5e3518"; ell(3.5, 0, 2.6, 2.2); ctx.fillStyle = "#8f5a2e"; ell(3, -0.8, 1, 0.6);
+  ctx.strokeStyle = "#7a4a1e"; ctx.lineWidth = 7.6; arm(); ctx.stroke();
+  ctx.strokeStyle = "#d29a5a"; ctx.lineWidth = 5.6; arm(); ctx.stroke();
+  ctx.strokeStyle = "#9c2f2f"; ctx.lineWidth = 1.4;
+  for (const [a, b] of [[-6, -7], [-1.5, -3.6], [-1.5, 3.6], [-6, 7]]) { const k = b < 0 ? 1 : -1; ctx.beginPath(); ctx.moveTo(a - 1.6, b - 1.6 * k); ctx.lineTo(a + 1.6, b + 1.6 * k); ctx.stroke(); }
+  if (dirt > 0) {
+    ctx.fillStyle = "#5e3518";
+    const sp = [[-7, -8, 3.2], [-2, -4.5, 3], [3, -.5, 3.4], [2, 2.5, 2.6], [-3.5, 5.2, 3.1], [-7.5, 8, 2.6], [-5, -6, 2], [0, 1, 2.4]];
+    sp.forEach((q, i) => { if (i / sp.length < dirt + .05) { ctx.beginPath(); ctx.ellipse(q[0], q[1], q[2], q[2] * .8, i, 0, 7); ctx.fill(); } });
+    if (dirt > .5) { ctx.fillStyle = "#8f5a2e"; ell(-2.4, -5, 1.2, .7); ell(2.4, -.8, 1.3, .7); ell(-4, 5, 1.1, .6); }
+    if (dirt > .7) { ctx.fillStyle = "#5e3518"; ell(-6.5, 10.5, 1, 2.4); ell(3, 4.6, .9, 2); }
+  }
   ctx.restore();
 }
 function drawPoop(x, y, s, rot, type) {
@@ -1492,9 +1499,53 @@ function rBlend(A, B, k) {
   if (k < .6) { delete P.butt; delete P.headUpside; }
   return P;
 }
+// Bosta Bumerangue: tira o bumerangue das costas, esfrega na bunda, segura, arremessa de lado e, se voltar, pega e cheira
+const BUM_PREP = 2.4, B_REST = [14, -6], B_BACK = [-12, -36], B_SHOW = [16, -58], B_HOLD = [18, -44], B_WIND = [-16, -56], B_REL = [28, -44];
+function bLp(p, q, k) { return [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k]; }
+function bSm(k) { k = clamp(k, 0, 1); return k * k * (3 - 2 * k); }
+function bSeg(t, a, b) { return clamp((t - a) / (b - a), 0, 1); }
+function bumStink(g, x, y, face) { if (Math.random() < 0.12) particles.push({ kind: "stink", x: g.x + face * RK * x + rand(-3, 3), y: g.y + RK * y, vx: rand(-10, 10), vy: rand(-30, -12), life: rand(0.8, 1.4), t: 0, size: rand(4, 7), ph: rand(0, 6) }); }
+function bumerPose(g, act, thr, cat, face) {
+  const U = rUpright(); U.hr = -.25; U.bendF = 1; U.bendB = 1; U.handB = [-6, -8];
+  if (cat) {
+    const u = time - g.catchAt;
+    U.handF = u < .25 ? [24, -46] : u < .6 ? bLp([24, -46], [12, -60], bSm(bSeg(u, .25, .6))) : u < 1.55 ? [12 + Math.sin(u * 14) * .8, -60] : bLp([12, -60], B_REST, bSm(bSeg(u, 1.55, 2.1)));
+    U.bumer = u < 1.7; U.bumRot = -1.3; U.dirt = 1;
+    if (u > .6 && u < 1.55) { U.hr = -.1 + Math.sin(u * 30) * .03; U.eyes = u > 1 ? "squint" : "n"; U.mouth = u > 1 ? "tongue" : "o"; bumStink(g, 14, -66, face); }
+    return U;
+  }
+  if (thr) {
+    const k = 1 - g.throwT / 0.35;
+    U.handF = k < .3 ? bLp(B_WIND, B_REL, k / .3) : bLp(B_REL, [22, -18], bSm((k - .3) / .7));
+    U.torso = .05 + .25 * Math.sin(Math.min(1, k * 1.5) * Math.PI * .5); U.mouth = "o";
+    return U;
+  }
+  if (g.bumStart == null) g.bumStart = time;
+  if (charging && time - g.bumStart < BUM_PREP) g.bumStart = time - BUM_PREP;
+  const u = time - g.bumStart;
+  if (u >= BUM_PREP) {
+    U.handF = bLp(B_HOLD, B_WIND, charging ? power : 0); U.torso = .05 - .12 * (charging ? power : 0);
+    U.bumer = true; U.dirt = 1; U.bumRot = -.5 - (charging ? power : 0) * 1.2;
+    return U;
+  }
+  let P = U;
+  const W = { hip: [-3, -20], torso: 1.0, butt: 1, handF: [-9, -16], handB: [8, -4], footF: [6, 0], footB: [-7, 0], hr: .35, bendF: 1, bendB: 1, eyes: "squint", mouth: "o" };
+  const bend = bSm(bSeg(u, .85, 1.1)) * (1 - bSm(bSeg(u, 1.95, 2.25)));
+  if (bend > 0) P = rBlend(U, W, bend);
+  P.bendF = 1; P.bendB = 1;
+  if (u < .45) { P.handF = bLp(B_REST, B_BACK, bSm(u / .45)); P.bumer = false; }
+  else if (u < .85) { P.handF = bLp(B_BACK, B_SHOW, bSm(bSeg(u, .45, .85))); P.bumer = true; P.bumRot = -.6; P.dirt = 0; P.look = .6; }
+  else if (u < 1.1) { P.handF = bLp(B_SHOW, W.handF, bSm(bSeg(u, .85, 1.1))); P.bumer = true; P.bumRot = .6; P.dirt = 0; }
+  else if (u < 1.95) { const k = (u - 1.1) / .85; P.handF = [-9, -16 + Math.sin(k * Math.PI * 8) * 5]; P.bumer = true; P.bumRot = 1.57; P.dirt = k; P.eyes = "squint"; P.mouth = "o"; bumStink(g, -11, -15, face); }
+  else { P.handF = bLp(W.handF, B_HOLD, bSm(bSeg(u, 1.95, 2.3))); P.bumer = true; P.bumRot = -.5; P.dirt = 1; P.mouth = "grit"; }
+  return P;
+}
 function rigPose(g, isActive, air) {
   const busy = g.crouchT > 0 || g.landT > 0 || g.staggerT > 0 || g.hitT > 0 || g.shakeT > 0;
-  const wantButt = !air && !busy && ((isActive && time - (g.lastWalk || -9) > 0.25) || g.throwT > 0);
+  const bumAct = isActive && weapon === "bumer", bumThr = g.throwT > 0 && projectiles.some(p => p.owner === g && p.type === "bumer" && p.age < 0.45);
+  const bumCat = g.catchAt != null && time - g.catchAt < 2.1 && time >= g.catchAt;
+  if (!bumAct) g.bumStart = null;
+  const wantButt = !bumAct && !bumThr && !air && !busy && ((isActive && time - (g.lastWalk || -9) > 0.25) || g.throwT > 0);
   g.buttK = clamp((g.buttK || 0) + (wantButt ? 1 : -1) * 0.12, 0, 1);
   let P, face = g.face;
   if (g.hitT > 0) P = rHit();
@@ -1512,6 +1563,7 @@ function rigPose(g, isActive, air) {
     P = rBlend(rIdle(g), rButt(g.aim, ex, ex), g.buttK);
     if (g.buttK >= .5) face = -g.face; // vira de costas: o rabo aponta para o alvo
   }
+  if ((bumAct || bumThr || bumCat) && !air && !busy && time - (g.lastWalk || -9) > 0.15) { P = bumerPose(g, bumAct, bumThr, bumCat, g.face); face = g.face; }
   if (g.shakeT > 0) { const k = 1 - g.shakeT / 0.9; P.rot = Math.sin(k * 40) * .16 * (1 - k); P.hr = (P.hr || 0) + Math.sin(k * 40) * .3 * (1 - k); P.eyes = "squint"; }
   if (g.staggerT > 0) { const k = 1 - g.staggerT / 0.6; P.rot = (P.rot || 0) + Math.sin(k * 18) * .14 * (1 - k); }
   if (g.hurtT > 0 && !P.eyes) P.mouth = "o";
@@ -1557,6 +1609,7 @@ function drawRig(g, P, face) {
   ctx.save(); ctx.translate(hc[0], hc[1]); ctx.rotate((P.headUpside ? Math.PI : 0) + (P.hr || 0)); rHead(P, band); ctx.restore();
   const aF = rIK(shF, P.handF, 16, 16, P.bendF || 1); rLimb(shF, aF.e, aF.h, FUR, 9); ctx.fillStyle = FUR; ell(aF.h[0], aF.h[1], 4.6, 4.2);
   if (P.finger !== undefined) { ctx.save(); ctx.translate(aF.h[0], aF.h[1]); ctx.rotate(P.finger); ell(5, 0, 3.6, 1.6); ctx.restore(); ctx.fillStyle = FUR; } ctx.fillStyle = "#4a3a32"; ell(aF.h[0] + 1, aF.h[1] + 1, 2.2, 1.8);
+  if (P.bumer) drawBumer(aF.h[0] + 2, aF.h[1] - 2, 0.72 / rk, P.bumRot || 0, P.dirt == null ? 1 : P.dirt);
   if (P.beat && Math.abs(P.beat) > .7) { ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 1.5 / rk; for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.arc(chest[0] + 12, chest[1] + 6, 7 + i * 5, -.6, .6); ctx.stroke(); } }
   ctx.restore();
 }
@@ -1823,10 +1876,10 @@ function clientFire() {
   if (!net || net.fired || !active) return;
   const g = active, pw = Math.max(0.06, power);
   const msg = clientPosMsg("fire"); msg.pw = r2(pw); net.tx.send("H", Object.assign({ t: "in" }, msg));
-  const a = g.aim * Math.PI / 180, sp = pw * MAXV * powMul(g), L = buttPoint(g, g.face, g.aim, pw);
-  net.pred = { id: null, pred: true, x: L.x, y: L.y, vx: Math.cos(a) * g.face * sp, vy: -Math.sin(a) * sp, type: weapon, owner: g, age: 0, rot: Math.atan2(Math.cos(a) * g.face, Math.sin(a)), spin: weapon === "bumer" ? (Math.cos(a) * g.face < 0 ? -16 : 16) : 6, s0: clamp(rPoopS(pw) * RK / WEAP[weapon].size, 0.2, 1), sim: true, born: time };
+  const a = g.aim * Math.PI / 180, sp = pw * MAXV * powMul(g), L = weapon === "bumer" ? bumerHand(g, g.face) : buttPoint(g, g.face, g.aim, pw);
+  net.pred = { id: null, pred: true, x: L.x, y: L.y, vx: Math.cos(a) * g.face * sp, vy: -Math.sin(a) * sp, type: weapon, owner: g, age: 0, rot: Math.atan2(Math.cos(a) * g.face, Math.sin(a)), spin: weapon === "bumer" ? (Math.cos(a) * g.face < 0 ? -16 : 16) : 6, s0: weapon === "bumer" ? 1 : clamp(rPoopS(pw) * RK / WEAP[weapon].size, 0.2, 1), sim: true, born: time };
   projectiles.push(net.pred);
-  g.throwT = 0.35; sndFart(weapon === "mega"); net.recentFart = time;
+  g.throwT = 0.35; if (weapon === "bumer") sndWhoosh(); else sndFart(weapon === "mega"); net.recentFart = time;
   charging = false; power = 0; drag = null; net.fired = true;
 }
 function localCtl() { return isClientNet() && online() && state === "aim" && active && controllerOf(active) === net.id && !net.fired; }
@@ -2137,6 +2190,16 @@ function sndLaugh() {
   }
 }
 SND.sndLaugh = () => sndLaugh();
+SND.bumCatchAnim = i => bumCatchAnim(i);
+SND.sndWhoosh = () => sndWhoosh();
+function bumCatchAnim(i) { netEvent({ s: "bumCatchAnim", a: [i] }); const g = gorillas[i]; if (g) g.catchAt = time; }
+function sndWhoosh() {
+  netEvent({ s: "sndWhoosh", a: [] });
+  if (!AC || muted) return;
+  const t0 = AC.currentTime, s = AC.createBufferSource(); s.buffer = noiseBuf(0.35);
+  const f = AC.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 3; f.frequency.setValueAtTime(500, t0); f.frequency.exponentialRampToValueAtTime(2200, t0 + 0.12); f.frequency.exponentialRampToValueAtTime(700, t0 + 0.32);
+  const g = AC.createGain(); env(g, t0, 0.5, 0.32); s.connect(f); f.connect(g); g.connect(AC.destination); s.start(t0);
+}
 function startEmote(g, type) {
   if (!g || g.dead || g.gone || EMOTES.indexOf(type) < 0) return;
   if (state === "aim" && g === active) return;
@@ -2267,7 +2330,7 @@ function drawButtPose(g, isActive) {
 }
 function drawAim() {
   const g = active; if (!g || g.dead || state !== "aim") return;
-  const a = g.aim * Math.PI / 180, L0 = buttPoint(g, g.face, g.aim, charging ? power : 0), cx = L0.x, cy = L0.y;
+  const a = g.aim * Math.PI / 180, L0 = weapon === "bumer" ? bumerHand(g, g.face) : buttPoint(g, g.face, g.aim, charging ? power : 0), cx = L0.x, cy = L0.y;
   const dx = Math.cos(a) * g.face, dy = -Math.sin(a);
   if (charging) {
     const n = 14;
@@ -2341,6 +2404,7 @@ function renderInner() {
       const tr = p.tr || (p.tr = []); tr.push(p.x, p.y); if (tr.length > 56) tr.splice(0, 2);
       for (let i = 0; i < tr.length; i += 2) { const f = i / tr.length; ctx.globalAlpha = f * 0.7; ctx.fillStyle = i % 4 ? "#f2c14e" : "#fff6d0"; ctx.beginPath(); ctx.arc(tr[i], tr[i + 1], 1 + f * 2.2, 0, 7); ctx.fill(); }
       ctx.globalAlpha = 1;
+      if (Math.random() < .2) particles.push({ kind: "chunk", x: p.x, y: p.y, vx: rand(-20, 20), vy: rand(0, 40), life: rand(.5, .9), t: 0, size: rand(1.2, 2.2), color: "#5e3518" });
     }
     drawPoop(p.x, p.y, WEAP[p.type].size * (p.s0 + (1 - p.s0) * Math.min(1, p.age * 3)), p.rot, p.type);
     if (p.type !== "mini") drawFlies(p.x, p.y, 2, 14);
@@ -2691,6 +2755,12 @@ requestAnimationFrame(frame);
     const a = Math.atan2(dy, dx), c = Math.acos(cl((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1));
     return { e: [S[0] + Math.cos(a + bend * c) * l1, S[1] + Math.sin(a + bend * c) * l1], h: [S[0] + dx / D * d, S[1] + dy / D * d] };
   }
+  // escolhe o lado do cotovelo como num braço de verdade: para trás e para baixo
+  function armIK(S, T, l1, l2) {
+    const a = ik(S, T, l1, l2, 1), b = ik(S, T, l1, l2, -1);
+    const sc = q => -q.e[0] + 0.5 * q.e[1];
+    return sc(a) >= sc(b) ? a : b;
+  }
   function limb(S, E, H, col, w) { cx.strokeStyle = col; cx.lineCap = "round"; cx.lineJoin = "round"; cx.lineWidth = w; cx.beginPath(); cx.moveTo(S[0], S[1]); cx.lineTo(E[0], E[1]); cx.lineTo(H[0], H[1]); cx.stroke(); }
   function hand(H, col) { cx.fillStyle = col; el(H[0], H[1], 4.6, 4.2); cx.fillStyle = PALM; el(H[0] + 1.2, H[1] + 1, 2.4, 2); }
   function head(P, t) {
@@ -2726,7 +2796,7 @@ requestAnimationFrame(frame);
     if (P.lie) { cx.translate(-6, -4); cx.rotate(-P.lie); cx.translate(6, 4); }
     const hip = [0, -8], tilt = P.tilt || 0, br = Math.sin(t * 2.3) * (P.breath == null ? 1 : P.breath);
     const shB = rot([-5, -37], hip, tilt), shF = rot([8, -36], hip, tilt), neck = rot([7, -48], hip, tilt), kneeLift = P.kneeLift || 0;
-    const aB = ik(shB, P.handB || [-7, -4], 15, 15, 1); limb(shB, aB.e, aB.h, FAR, 8.5); hand(aB.h, FAR);
+    const aB = armIK(shB, P.handB || [-7, -4], 15, 15); limb(shB, aB.e, aB.h, FAR, 8.5); hand(aB.h, FAR);
     limb([2, -9], [16, -16 - kneeLift], [22, -3], FAR, 9); cx.fillStyle = FAR; el(25, -2.5, 6, 3.4);
     cx.save(); cx.translate(hip[0], hip[1]); cx.rotate(tilt); cx.translate(-hip[0], -hip[1]);
     cx.fillStyle = FUR; el(-1, -6, 13, 7.5); el(1, -26, 15.5 * (1 + br * .02), 19 * (1 + br * .025));
@@ -2735,7 +2805,7 @@ requestAnimationFrame(frame);
     limb([4, -8], [19, -14 - kneeLift], [26, -3], FUR, 9.5); cx.fillStyle = FUR; el(29, -2.5, 6.2, 3.6); cx.fillStyle = PALM; el(32, -3, 2.4, 2.2);
     const hc = [neck[0] + (P.hx || 0), neck[1] - 8 + (P.hy || 0)];
     cx.save(); cx.translate(hc[0], hc[1]); cx.rotate((P.hr || 0) + tilt * .5); head(P, t); cx.restore();
-    const aF = ik(shF, P.handF || [24, -15], 16, 16, P.bendF || -1); limb(shF, aF.e, aF.h, FUR, 9); hand(aF.h, FUR);
+    const aF = armIK(shF, P.handF || [24, -15], 16, 16); limb(shF, aF.e, aF.h, FUR, 9); hand(aF.h, FUR);
     if (P.stink) {
       cx.strokeStyle = "rgba(120,170,40," + (.85 * P.stink) + ")"; cx.lineWidth = 1.6; cx.lineCap = "round";
       for (let i = 0; i < 3; i++) { const sx = aF.h[0] - 3 + i * 4, sy = aF.h[1] - 6 - ((t * 14 + i * 5) % 8); cx.beginPath(); cx.moveTo(sx, sy); cx.quadraticCurveTo(sx + 2.5, sy - 3, sx, sy - 6); cx.quadraticCurveTo(sx - 2.5, sy - 9, sx, sy - 12); cx.stroke(); }
