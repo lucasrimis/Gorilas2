@@ -633,9 +633,9 @@ function launchAt(g, face, aimDeg, out) {
   const a = aimDeg * Math.PI / 180;
   return { x: g.x + face * Math.cos(a) * out, y: g.y - 15 - Math.sin(a) * out };
 }
-function launchFrom(g) { return launchAt(g, g.face, g.aim, 18); }
+function launchFrom(g) { return buttPoint(g, g.face, g.aim, Math.max(0.06, power)); }
 function spawnProj(x, y, vx, vy, type, owner) {
-  projectiles.push({ x, y, vx, vy, type, owner, age: 0, rot: 0, spin: rand(-8, 8) });
+  projectiles.push({ x, y, vx, vy, type, owner, age: 0, rot: owner ? Math.atan2(vx, -vy) : 0, spin: rand(-8, 8), s0: owner ? clamp(rPoopS(Math.max(0.06, power)) * RK / WEAP[type].size, 0.2, 1) : 1 });
 }
 let shooterTeam = null, shotHit = false;
 function fire() {
@@ -874,7 +874,7 @@ function startGame() {
 // ---------- IA ----------
 function simShot(g, face, ang, pw) {
   const a = ang * Math.PI / 180, sp = pw * MAXV * powMul(g);
-  const L = launchAt(g, face, ang, 18);
+  const L = buttPoint(g, face, ang, pw);
   const p = { x: L.x, y: L.y, vx: Math.cos(a) * face * sp, vy: -Math.sin(a) * sp, owner: g, age: 0 };
   const saveFace = g.face; g.face = face;
   let res = null;
@@ -1035,11 +1035,8 @@ function drawGorilla(g) {
   }
   const isActive = g === active && (state === "aim");
   const air = !grounded(g);
-  const busy = g.crouchT > 0 || g.landT > 0 || g.staggerT > 0 || g.hitT > 0 || g.shakeT > 0;
-  const buttPose = !air && !busy && ((isActive && time - (g.lastWalk || -9) > 0.25) || g.throwT > 0);
-  if (buttPose) drawButtPose(g, isActive);
-  else if (!air && !g.crouchT && time - (g.lastWalk || -9) < 0.15) drawQuad(g);
-  else drawUpright(g, air);
+  const RP = rigPose(g, isActive, air);
+  drawRig(g, RP.P, RP.face);
 
   if (g.stuck > 0) drawGoo(g);
 
@@ -1169,6 +1166,123 @@ function drawUpright(g, air) {
     for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.arc(g.x + g.face * 8, g.y - 16, 8 + i * 5, g.face > 0 ? -0.6 : Math.PI - 0.6, g.face > 0 ? 0.6 : Math.PI + 0.6); ctx.stroke(); }
   }
 }
+// ---------- Gorila articulado (mesmo corpo do gorila do menu) ----------
+const RK = 0.55, R_ANUS = 8.6, R_POOP_M = 1.6, R_BARE = "#a3807a";
+function rPoopS(ex) { return (0.32 + ex * 0.38) * R_POOP_M; }
+function rPoopC(ex) { return R_ANUS - 1 + 8.2 * rPoopS(ex) * ex; }
+function rButtGeom(aimDeg) {
+  const a = clamp(Math.PI / 2 + aimDeg * Math.PI / 180, 1.1, 3.05);
+  return { a, hip: [0, -27 - Math.max(0, -Math.cos(a)) * 12] };
+}
+// ponto (mundo) onde está a bosta que sai do rabo; usado para lançar e para o computador mirar
+function buttPoint(g, face, aimDeg, ex) {
+  const { a, hip } = rButtGeom(aimDeg), dir = [Math.sin(a), -Math.cos(a)], off = rPoopC(ex);
+  const bp = [hip[0] - dir[0] * off, hip[1] - dir[1] * off];
+  return { x: g.x - face * RK * bp[0], y: g.y + RK * bp[1] };
+}
+function rIK(S, T, l1, l2, bend) {
+  const dx = T[0] - S[0], dy = T[1] - S[1], D = Math.hypot(dx, dy) || 1, d = Math.min(D, l1 + l2 - .01);
+  const a = Math.atan2(dy, dx), c = Math.acos(clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1));
+  return { e: [S[0] + Math.cos(a + bend * c) * l1, S[1] + Math.sin(a + bend * c) * l1], h: [S[0] + dx / D * d, S[1] + dy / D * d] };
+}
+function rLimb(S, E, Hh, col, w) { ctx.strokeStyle = col; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(S[0], S[1]); ctx.lineTo(E[0], E[1]); ctx.lineTo(Hh[0], Hh[1]); ctx.stroke(); }
+function rHead(P, band) {
+  ctx.fillStyle = FUR; ell(-9, 1, 3.5, 4); ell(0, 0, 11.5, 10.8);
+  ctx.fillStyle = SKIN; ell(5, 3.5, 8, 6.6);
+  ctx.fillStyle = FUR; ctx.fillRect(-2.5, -6.5, 14, 2.8);
+  const ey = -2, op = { n: 1, half: .45, squint: .22, wide: 1.25 }[P.eyes || "n"] * (P.blink ? .12 : 1);
+  for (const ex of [2.2, 8.3]) { ctx.fillStyle = "#fff"; ell(ex, ey, 2.6, 2.8 * op); ctx.fillStyle = "#111"; ell(ex + .4 + (P.look || 0), ey, 1.3, 1.3 * Math.min(1, op * 1.1)); }
+  if (op < .6) { ctx.fillStyle = FUR; ctx.fillRect(-1, ey - 3.2, 12.5, 2.6 * (1 - op)); }
+  ctx.fillStyle = "#3a2c25"; ell(6.8, 3.4, 1.1, .85); ell(9.6, 3.4, 1.1, .85);
+  ctx.strokeStyle = "#3a2c25"; ctx.lineWidth = 1.3;
+  if (P.mouth === "o") ell(7.5, 7.6, 1.6, 2);
+  else { ctx.beginPath(); ctx.arc(7, 5.6, 2.4, .35, Math.PI - .35); ctx.stroke(); }
+  ctx.fillStyle = band; ctx.fillRect(-11, -10, 21, 3.8);
+  ctx.beginPath(); ctx.moveTo(-11, -8.5); ctx.lineTo(-18, -12 + Math.sin(time * 7) * 2); ctx.lineTo(-17, -5); ctx.fill();
+}
+// poses (coordenadas locais, virado para +x, chão em y = 0)
+function rIdle(g) { return { hip: [-3, -21], torso: .62, handF: [17, -1], handB: [11, -1], footF: [2, 0], footB: [-8, 0], hr: -.35, blink: g.blinkT > 0, look: Math.sin(time * .7 + g.ph) * .4 }; }
+function rWalk(g) {
+  const ph = (g.walk * 0.09) % 1, bob = Math.sin(ph * 4 * Math.PI) * .8;
+  const f = (base, off) => { const p = (ph + off) % 1; return [base + Math.sin(p * 2 * Math.PI) * 5, -Math.max(0, Math.cos(p * 2 * Math.PI)) * 3]; };
+  return { hip: [-3, -19 + bob], torso: .95, handF: f(17, .25), handB: f(12, .75), footF: f(2, 0), footB: f(-7, .5), hr: -.75, look: .5, blink: g.blinkT > 0 };
+}
+function rButt(aimDeg, ex, shiver) {
+  const { a, hip } = rButtGeom(aimDeg), dir = [Math.sin(a), -Math.cos(a)], cx = hip[0] + dir[0] * 27;
+  return { hip: [hip[0] + Math.sin(time * 70) * .7 * shiver, hip[1]], torso: a, handF: [cx + 3, -1], handB: [cx - 2, -1], footF: [4, 0], footB: [-5, 0],
+    butt: 1, poop: ex, headUpside: a > 1.8, hr: a > 1.8 ? .2 : -.3, eyes: ex > .6 ? "squint" : "n", mouth: ex > 0 ? "o" : "n" };
+}
+function rCrouch(k) { return { hip: [-3, -21 + 6 * k], torso: .62 + .3 * k, handF: [17, -1], handB: [11, -1], footF: [2, 0], footB: [-8, 0], hr: -.35 }; }
+function rAir(g) { const up = g.vy < 0; return { hip: [-2, -24], torso: up ? .2 : .3, handF: up ? [16, -42] : [20, -34], handB: up ? [-10, -40] : [-12, -32], footF: [5, -9], footB: [-6, -8], mouth: "o", hr: -.1, bendF: -1, bendB: -1 }; }
+function rHit() { return { hip: [-2, -23], torso: -.12, handF: [12, -52], handB: [4, -54], footF: [4, 0], footB: [-6, 0], eyes: "squint", mouth: "o", hr: .25, bendF: -1, bendB: -1 }; }
+function rBeat(g) { const b = Math.sin((1.4 - g.beatT) * 20); return { hip: [0, -24], torso: .05, handF: [13 + b * 4, -33], handB: [11 - b * 4, -35], footF: [4, 0], footB: [-6, 0], mouth: "o", hr: -.25, beat: b, bendF: -1, bendB: -1 }; }
+function rBlend(A, B, k) {
+  if (k <= 0) return A; if (k >= 1) return B;
+  const P = Object.assign({}, k < .5 ? A : B);
+  for (const n of ["hip", "handF", "handB", "footF", "footB"]) P[n] = [A[n][0] + (B[n][0] - A[n][0]) * k, A[n][1] + (B[n][1] - A[n][1]) * k];
+  P.torso = A.torso + (B.torso - A.torso) * k; P.hr = (A.hr || 0) + ((B.hr || 0) - (A.hr || 0)) * k;
+  if (k < .6) { delete P.butt; delete P.headUpside; }
+  return P;
+}
+function rigPose(g, isActive, air) {
+  const busy = g.crouchT > 0 || g.landT > 0 || g.staggerT > 0 || g.hitT > 0 || g.shakeT > 0;
+  const wantButt = !air && !busy && ((isActive && time - (g.lastWalk || -9) > 0.25) || g.throwT > 0);
+  g.buttK = clamp((g.buttK || 0) + (wantButt ? 1 : -1) * 0.12, 0, 1);
+  let P, face = g.face;
+  if (g.hitT > 0) P = rHit();
+  else if (air) P = rAir(g);
+  else if (g.crouchT > 0) P = rCrouch(1 - g.crouchT / 0.15);
+  else if (g.landT > 0) P = rCrouch(Math.sin(Math.PI * (1 - g.landT / 0.25)) * g.landAmt);
+  else if (g.beatT > 0) P = rBeat(g);
+  else if (time - (g.lastWalk || -9) < 0.15) P = rWalk(g);
+  else P = rIdle(g);
+  if (g.buttK > 0 && !air && !busy) {
+    const ex = isActive && charging ? power : 0;
+    P = rBlend(rIdle(g), rButt(g.aim, ex, ex), g.buttK);
+    if (g.buttK >= .5) face = -g.face; // vira de costas: o rabo aponta para o alvo
+  }
+  if (g.shakeT > 0) { const k = 1 - g.shakeT / 0.9; P.rot = Math.sin(k * 40) * .16 * (1 - k); P.hr = (P.hr || 0) + Math.sin(k * 40) * .3 * (1 - k); P.eyes = "squint"; }
+  if (g.staggerT > 0) { const k = 1 - g.staggerT / 0.6; P.rot = (P.rot || 0) + Math.sin(k * 18) * .14 * (1 - k); }
+  if (g.hurtT > 0 && !P.eyes) P.mouth = "o";
+  return { P, face };
+}
+function drawRig(g, P, face) {
+  const T = teams[g.team], a = P.torso, dir = [Math.sin(a), -Math.cos(a)], hip = P.hip, br = Math.sin(time * 2.3 + g.ph);
+  ctx.save(); ctx.translate(g.x, g.y);
+  if (g.hurtT > 0 && !(g.hitT > 0)) ctx.translate(Math.sin(time * 70) * 1.2, 0);
+  ctx.scale(RK * face, RK); if (P.rot) ctx.rotate(P.rot);
+  const chest = [hip[0] + dir[0] * 27, hip[1] + dir[1] * 27], perp = [-dir[1], dir[0]];
+  const shF = [chest[0] - perp[0] * 2 - dir[0] * 2, chest[1] - perp[1] * 2 - dir[1] * 2], shB = [chest[0] - perp[0] * 3 - dir[0] * 3, chest[1] - perp[1] * 3 - dir[1] * 3];
+  const aB = rIK(shB, P.handB, 16, 16, P.bendB || 1); rLimb(shB, aB.e, aB.h, FUR_FAR, 8.5); ctx.fillStyle = FUR_FAR; ell(aB.h[0], aB.h[1], 4.4, 4);
+  const hB = [hip[0] - 2, hip[1] + 2], lB = rIK(hB, P.footB, 13, 13, -1); rLimb(hB, lB.e, lB.h, FUR_FAR, 9); ctx.fillStyle = FUR_FAR; ell(lB.h[0] + 2, lB.h[1] - 1, 5.5, 3.2);
+  ctx.save(); ctx.translate(hip[0], hip[1]); ctx.rotate(a);
+  ctx.fillStyle = FUR; ell(0, -2, 13, 9); ell(0, -15, 15.5 * (1 + br * .02), 19 * (1 + br * .025));
+  ctx.fillStyle = BELLY; ell(4, -13, 8.5 * (1 + br * .04), 12.5 * (1 + br * .04));
+  if (g.spotT > 0 && g.spots.length) {
+    ctx.globalAlpha = Math.min(1, g.spotT / 1.2);
+    for (const s of g.spots) { ctx.fillStyle = "#5e3518"; ell(s.x * 1.3, s.y + 4, s.r * 1.6, s.r * 1.3); ctx.fillStyle = "#8f5a2e"; ell(s.x * 1.3 - s.r * .4, s.y + 3.5, s.r * .6, s.r * .45); }
+    ctx.globalAlpha = 1;
+  }
+  if (P.butt) {
+    const ex = P.poop || 0, sq = ex * 1.6;
+    ctx.fillStyle = R_BARE; ell(-3.4 - sq * .6, 4.5, 5.2, 6); ell(4.4 + sq * .6, 4.5, 5.2, 6);
+    ctx.fillStyle = "#6e4a40"; ell(.5, R_ANUS, 1.6 + sq * .9, 1.1 + sq * .5);
+    if (ex > 0 && g === active) {
+      ctx.save(); ctx.beginPath(); ctx.rect(-20, R_ANUS, 40, 30); ctx.clip();
+      drawPoop(.5, rPoopC(ex), rPoopS(ex), Math.PI, weapon); ctx.restore();
+      ctx.strokeStyle = "#7c5248"; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.ellipse(.5, R_ANUS, 2.2 + sq * 1.6, .9 + sq * .5, 0, 0, 7); ctx.stroke();
+    }
+    ctx.strokeStyle = "#6e4f48"; ctx.lineWidth = .8; ctx.beginPath(); ctx.moveTo(.5, -1); ctx.lineTo(.5, R_ANUS - 1); ctx.stroke();
+  }
+  ctx.restore();
+  const hF = [hip[0] + 3, hip[1] + 2], lF = rIK(hF, P.footF, 13, 13, -1); rLimb(hF, lF.e, lF.h, FUR, 9.5); ctx.fillStyle = FUR; ell(lF.h[0] + 2, lF.h[1] - 1, 5.8, 3.4);
+  const neck = [chest[0] + dir[0] * 7, chest[1] + dir[1] * 7], hc = [neck[0], neck[1] - 6];
+  ctx.save(); ctx.translate(hc[0], hc[1]); ctx.rotate((P.headUpside ? Math.PI : 0) + (P.hr || 0)); rHead(P, T.color); ctx.restore();
+  const aF = rIK(shF, P.handF, 16, 16, P.bendF || 1); rLimb(shF, aF.e, aF.h, FUR, 9); ctx.fillStyle = FUR; ell(aF.h[0], aF.h[1], 4.6, 4.2); ctx.fillStyle = "#4a3a32"; ell(aF.h[0] + 1, aF.h[1] + 1, 2.2, 1.8);
+  if (P.beat && Math.abs(P.beat) > .7) { ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 1.5 / RK; for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.arc(chest[0] + 12, chest[1] + 6, 7 + i * 5, -.6, .6); ctx.stroke(); } }
+  ctx.restore();
+}
+
 function drawButtPose(g, isActive) {
   const T = teams[g.team], a = g.aim * Math.PI / 180;
   const fur = "#2e2a2a", skin = "#8a7262", bare = "#a3807a";
@@ -1205,7 +1319,7 @@ function drawButtPose(g, isActive) {
 }
 function drawAim() {
   const g = active; if (!g || g.dead || state !== "aim") return;
-  const a = g.aim * Math.PI / 180, L0 = launchAt(g, g.face, g.aim, 16), cx = L0.x, cy = L0.y;
+  const a = g.aim * Math.PI / 180, L0 = buttPoint(g, g.face, g.aim, charging ? power : 0), cx = L0.x, cy = L0.y;
   const dx = Math.cos(a) * g.face, dy = -Math.sin(a);
   if (charging) {
     const n = 14;
@@ -1269,7 +1383,7 @@ function render() {
   drawAim();
 
   for (const p of projectiles) {
-    drawPoop(p.x, p.y, WEAP[p.type].size, p.rot, p.type);
+    drawPoop(p.x, p.y, WEAP[p.type].size * (p.s0 + (1 - p.s0) * Math.min(1, p.age * 3)), p.rot, p.type);
     if (p.type !== "mini") drawFlies(p.x, p.y, 2, 14);
   }
   for (const p of particles) {
