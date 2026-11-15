@@ -255,9 +255,10 @@ const WEAP = {
   grude:  { name: "Bosta Grudenta", icon: "🍯💩", r: 30, dmg: 22, size: 1.0, color: "#6f6a1c", hi: "#a39a2e" },
   mini:   { name: "mini",         icon: "",       r: 17, dmg: 16, size: 0.55 },
   balao:  { name: "Bosta-Balão",  icon: "🎈💩",   r: 20, dmg: 10, size: 1.0, color: "#e0a020", hi: "#fff2a8" },
+  bumer:  { name: "Bosta Bumerangue", icon: "🪃💩", r: 24, dmg: 20, size: 1.3 },
 };
-const WEAP_ORDER = ["bosta", "tripla", "grude", "mega", "balao"];
-const AMMO = { bosta: Infinity, tripla: 2, grude: 2, mega: 1, balao: 0 };
+const WEAP_ORDER = ["bosta", "tripla", "grude", "bumer", "mega", "balao"];
+const AMMO = { bosta: Infinity, tripla: 2, grude: 2, bumer: 1, mega: 1, balao: 0 };
 
 const TEAMS_DEF = [
   { key: "team0", name: "Peludos",    color: "#e5484d", names: ["Kong", "Bongo", "Tonho"] },
@@ -302,7 +303,7 @@ const STR = {
     wind: "VENTO", tabSwap: "Tab: trocar", kbHint: "← → andar · ↑ ↓ mirar · Espaço atirar · Enter pular",
     touchHintS: "👆 Puxe para trás e solte", touchHintL: "👆 Puxe para trás como um estilingue · solte para atirar",
     playOnline: "🌐 Jogar online", onlineTitle: "🌐 Jogar online", yourName: "Seu nome", createRoom: "Criar sala", orJoin: "Ou entre numa sala com o código", join: "Entrar", onlineNote: "Cada jogador controla um gorila. A sala tem uma vaga por gorila (de 2 a 6 jogadores, conforme os gorilas por time); os gorilas sem jogador viram bots.", roomCode: "Código da sala", shareCode: "Mande este código para os seus amigos.", joinTeam: "Entrar neste time", startMatch: "COMEÇAR!", back: "Voltar", waitHost: "Esperando o anfitrião começar…", connecting: "Conectando…", notFound: "Sala não encontrada. Confira o código.", roomFull: "A sala está cheia ({n} jogadores no máximo).", alreadyStarted: "A partida dessa sala já começou.", hostLeft: "O anfitrião saiu da sala.", netErr: "Não foi possível conectar. Verifique a internet e tente de novo.", netLoadErr: "Não foi possível carregar o modo online. Verifique a internet.", codeInvalid: "O código tem 6 letras.", needBoth: "Precisa de pelo menos 2 jogadores na sala.", canStart: "{n} jogador(es) na sala. As vagas vazias serão bots. Pode começar!", you: "você", player: "Jogador", yourTurn: "Sua vez, {n}!", playerLeft: "{n} saiu da partida",
-    botSlot: "bot", capacity: "Jogadores: {a}/{b}", tooManyForN: "Um time tem mais de {n} jogadores. Mude alguém de time primeiro.", emo_beat: "Bater no peito", emo_laugh: "Gargalhar", emo_butt: "Mostrar a bunda", emo_dance: "Dançar", emo_come: "Vem!", emo_sniff: "Cheirar a mão", emoTxt_beat: "TUM TUM!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Toma!", emoTxt_dance: "♪ ♫", emoTxt_come: "Vem!", emoTxt_sniff: "Ugh…", w_bosta: "Bosta", w_tripla: "Bosta Tripla", w_mega: "Mega Bosta", w_grude: "Bosta Grudenta", w_balao: "Bosta-Balão", bonus: "+1 BOSTA-BALÃO!",
+    botSlot: "bot", capacity: "Jogadores: {a}/{b}", tooManyForN: "Um time tem mais de {n} jogadores. Mude alguém de time primeiro.", emo_beat: "Bater no peito", emo_laugh: "Gargalhar", emo_butt: "Mostrar a bunda", emo_dance: "Dançar", emo_come: "Vem!", emo_sniff: "Cheirar a mão", emoTxt_beat: "TUM TUM!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Toma!", emoTxt_dance: "♪ ♫", emoTxt_come: "Vem!", emoTxt_sniff: "Ugh…", w_bosta: "Bosta", w_tripla: "Bosta Tripla", w_mega: "Mega Bosta", w_grude: "Bosta Grudenta", w_balao: "Bosta-Balão", w_bumer: "Bosta Bumerangue", caught: "PEGOU!", bonus: "+1 BOSTA-BALÃO!",
     install: "📲 Instalar o jogo", iosHint: "📲 Para instalar: toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>.",
   },
   en: {
@@ -320,7 +321,7 @@ const STR = {
     wind: "WIND", tabSwap: "Tab: switch", kbHint: "← → walk · ↑ ↓ aim · Space throw · Enter jump",
     touchHintS: "👆 Pull back and release", touchHintL: "👆 Pull back like a slingshot · release to throw",
     playOnline: "🌐 Play online", onlineTitle: "🌐 Play online", yourName: "Your name", createRoom: "Create room", orJoin: "Or join a room with its code", join: "Join", onlineNote: "Each player controls one gorilla. The room has one spot per gorilla (2 to 6 players, depending on gorillas per team); gorillas without a player become bots.", roomCode: "Room code", shareCode: "Send this code to your friends.", joinTeam: "Join this team", startMatch: "START!", back: "Back", waitHost: "Waiting for the host to start…", connecting: "Connecting…", notFound: "Room not found. Check the code.", roomFull: "The room is full ({n} players max).", alreadyStarted: "That room's match has already started.", hostLeft: "The host left the room.", netErr: "Couldn't connect. Check your internet and try again.", netLoadErr: "Couldn't load online mode. Check your internet.", codeInvalid: "The code has 6 letters.", needBoth: "You need at least 2 players in the room.", canStart: "{n} player(s) in the room. Empty spots will be bots. Ready to start!", you: "you", player: "Player", yourTurn: "Your turn, {n}!", playerLeft: "{n} left the match",
-    botSlot: "bot", capacity: "Players: {a}/{b}", tooManyForN: "A team has more than {n} players. Move someone to the other team first.", emo_beat: "Chest beat", emo_laugh: "Laugh", emo_butt: "Moon", emo_dance: "Dance", emo_come: "Come here!", emo_sniff: "Sniff hand", emoTxt_beat: "THUMP THUMP!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Take that!", emoTxt_dance: "♪ ♫", emoTxt_come: "Come here!", emoTxt_sniff: "Ugh…", w_bosta: "Poop", w_tripla: "Triple Poop", w_mega: "Mega Poop", w_grude: "Sticky Poop", w_balao: "Balloon Poop", bonus: "+1 BALLOON POOP!",
+    botSlot: "bot", capacity: "Players: {a}/{b}", tooManyForN: "A team has more than {n} players. Move someone to the other team first.", emo_beat: "Chest beat", emo_laugh: "Laugh", emo_butt: "Moon", emo_dance: "Dance", emo_come: "Come here!", emo_sniff: "Sniff hand", emoTxt_beat: "THUMP THUMP!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Take that!", emoTxt_dance: "♪ ♫", emoTxt_come: "Come here!", emoTxt_sniff: "Ugh…", w_bosta: "Poop", w_tripla: "Triple Poop", w_mega: "Mega Poop", w_grude: "Sticky Poop", w_balao: "Balloon Poop", w_bumer: "Boomerang Poop", caught: "CAUGHT!", bonus: "+1 BALLOON POOP!",
     install: "📲 Install the game", iosHint: "📲 To install: tap <b>Share</b>, then <b>Add to Home Screen</b>.",
   },
   de: {
@@ -338,7 +339,7 @@ const STR = {
     wind: "WIND", tabSwap: "Tab: wechseln", kbHint: "← → laufen · ↑ ↓ zielen · Leertaste werfen · Enter springen",
     touchHintS: "👆 Zurückziehen und loslassen", touchHintL: "👆 Wie eine Steinschleuder zurückziehen · loslassen zum Werfen",
     playOnline: "🌐 Online spielen", onlineTitle: "🌐 Online spielen", yourName: "Dein Name", createRoom: "Raum erstellen", orJoin: "Oder tritt mit dem Code einem Raum bei", join: "Beitreten", onlineNote: "Jeder Spieler steuert einen Gorilla. Der Raum hat einen Platz pro Gorilla (2 bis 6 Spieler, je nach Gorillas pro Team); Gorillas ohne Spieler werden Bots.", roomCode: "Raumcode", shareCode: "Schick diesen Code an deine Freunde.", joinTeam: "Diesem Team beitreten", startMatch: "LOS!", back: "Zurück", waitHost: "Warte, bis der Gastgeber startet…", connecting: "Verbinde…", notFound: "Raum nicht gefunden. Prüfe den Code.", roomFull: "Der Raum ist voll (max. {n} Spieler).", alreadyStarted: "Das Spiel in diesem Raum hat schon begonnen.", hostLeft: "Der Gastgeber hat den Raum verlassen.", netErr: "Verbindung fehlgeschlagen. Prüfe dein Internet und versuch es nochmal.", netLoadErr: "Online-Modus konnte nicht geladen werden. Prüfe dein Internet.", codeInvalid: "Der Code hat 6 Buchstaben.", needBoth: "Es braucht mindestens 2 Spieler im Raum.", canStart: "{n} Spieler im Raum. Leere Plätze werden Bots. Es kann losgehen!", you: "du", player: "Spieler", yourTurn: "Du bist dran, {n}!", playerLeft: "{n} hat das Spiel verlassen",
-    botSlot: "Bot", capacity: "Spieler: {a}/{b}", tooManyForN: "Ein Team hat mehr als {n} Spieler. Verschiebe zuerst jemanden ins andere Team.", emo_beat: "Brust trommeln", emo_laugh: "Lachen", emo_butt: "Hintern zeigen", emo_dance: "Tanzen", emo_come: "Komm her!", emo_sniff: "Hand schnüffeln", emoTxt_beat: "BUMM BUMM!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Da hast du's!", emoTxt_dance: "♪ ♫", emoTxt_come: "Komm her!", emoTxt_sniff: "Igitt…", w_bosta: "Kacke", w_tripla: "Dreifach-Kacke", w_mega: "Mega-Kacke", w_grude: "Klebe-Kacke", w_balao: "Ballon-Kacke", bonus: "+1 BALLON-KACKE!",
+    botSlot: "Bot", capacity: "Spieler: {a}/{b}", tooManyForN: "Ein Team hat mehr als {n} Spieler. Verschiebe zuerst jemanden ins andere Team.", emo_beat: "Brust trommeln", emo_laugh: "Lachen", emo_butt: "Hintern zeigen", emo_dance: "Tanzen", emo_come: "Komm her!", emo_sniff: "Hand schnüffeln", emoTxt_beat: "BUMM BUMM!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Da hast du's!", emoTxt_dance: "♪ ♫", emoTxt_come: "Komm her!", emoTxt_sniff: "Igitt…", w_bosta: "Kacke", w_tripla: "Dreifach-Kacke", w_mega: "Mega-Kacke", w_grude: "Klebe-Kacke", w_balao: "Ballon-Kacke", w_bumer: "Bumerang-Kacke", caught: "GEFANGEN!", bonus: "+1 BALLON-KACKE!",
     install: "📲 Spiel installieren", iosHint: "📲 Zum Installieren: Tippe auf <b>Teilen</b> und dann auf <b>Zum Home-Bildschirm</b>.",
   },
 };
@@ -769,7 +770,60 @@ function jump(g) {
 }
 
 // ---------- Projéteis ----------
+// Bosta Bumerangue: ignora vento e gravidade, sobe, faz a curva para baixo e volta rente ao chão
+const BUM_W = 3.6, BUM_RAMP = 1.5, BUM_LIFE = 7;
+function bumerStep(p, dt) {
+  const dir = p.spin < 0 ? -1 : 1;
+  if (p.age > BUM_LIFE) p.vy += GRAVP * dt;
+  else {
+    let lx = p.vx * dir, ly = -p.vy;
+    if (!(lx < 0 && ly >= 0)) {
+      const sp = Math.hypot(lx, ly) || 1;
+      let a = Math.atan2(ly, lx) - BUM_W * Math.min(1, Math.pow(p.age / BUM_RAMP, 2)) * dt;
+      if (lx < 0 && a < -Math.PI) a = -Math.PI;
+      if (lx < 0 && ly >= 0) a = Math.PI;
+      p.vx = sp * Math.cos(a) * dir; p.vy = -sp * Math.sin(a);
+    }
+  }
+  const back = p.vx * dir < 0;
+  const sp = Math.hypot(p.vx, p.vy) * dt, n = Math.max(1, Math.ceil(sp / 2));
+  for (let i = 0; i < n; i++) {
+    p.x += p.vx * dt / n; p.y += p.vy * dt / n;
+    if (p.y > WATER) return "water";
+    if (p.x < -500 || p.x > W + 500 || p.y < -900) return "out";
+    if (!p.sim && shiny && Math.hypot(p.x - shiny.x, p.y - shiny.y - Math.sin(time * 2) * 6) < 17) collectShiny();
+    if (S(p.x, p.y)) return "hit";
+    for (const g of gorillas) {
+      if (g.gone || g.dead) continue;
+      if (!(Math.abs(p.x - g.x) < 13 && p.y > g.y - 34 && p.y <= g.y + 1)) continue;
+      if (g === p.owner) { if (back && p.age > 0.6) return "catch"; continue; }
+      const key = gorillas.indexOf(g) + (back ? "v" : "i");
+      p.hits = p.hits || {};
+      if (!p.hits[key]) { p.hits[key] = 1; if (!p.sim) bumerPass(p, g, back); }
+    }
+  }
+  p.age += dt;
+  return null;
+}
+function bumerPass(p, g, back) {
+  hurt(g, back ? 25 : 20);
+  if (shooterTeam !== null && g.team !== shooterTeam) shotHit = true;
+  g.hitT = 0.6; g.shakeT = 0; g.beatT = 0; g.spotT = 3.5; g.spots = [];
+  for (let i = 0; i < 6; i++) g.spots.push({ x: rand(-10, 10), y: rand(-30, -6), r: rand(1.5, 3.2) });
+  if (!(g.stuck > 0)) { g.vx += Math.sign(p.vx) * 90; g.vy -= 140; g.ry = 0; }
+  for (let i = 0; i < 10; i++) particles.push({ kind: "chunk", x: p.x, y: p.y, vx: p.vx * 0.3 + rand(-120, 120), vy: rand(-220, -60), life: rand(0.5, 1), t: 0, size: rand(2, 4.5), color: Math.random() < 0.7 ? "#6b3e1f" : "#8f5a2e" });
+  shake = Math.min(18, shake + 5); camFocus = { x: g.x, y: g.y - 30 };
+  sndSplat(false, true);
+}
+function bumerCatch(p) {
+  const g = p.owner; if (!g || g.dead) return;
+  teams[g.team].ammo.bumer = (teams[g.team].ammo.bumer || 0) + 1;
+  addText(g.x, g.y - 64, t("caught"), "#f2c14e");
+  g.throwT = 0.4; camFocus = { x: g.x, y: g.y - 30 };
+  sndPlop();
+}
 function projStep(p, dt) {
+  if (p.type === "bumer") return bumerStep(p, dt);
   p.vx += wind * dt; p.vy += GRAVP * dt;
   const sp = Math.hypot(p.vx, p.vy) * dt, n = Math.max(1, Math.ceil(sp / 2));
   for (let i = 0; i < n; i++) {
@@ -795,7 +849,7 @@ function launchAt(g, face, aimDeg, out) {
 function launchFrom(g) { return buttPoint(g, g.face, g.aim, Math.max(0.06, power)); }
 let projId = 0;
 function spawnProj(x, y, vx, vy, type, owner) {
-  projectiles.push({ id: ++projId, x, y, vx, vy, type, owner, age: 0, rot: owner ? Math.atan2(vx, -vy) : 0, spin: rand(-8, 8), s0: owner ? clamp(rPoopS(Math.max(0.06, power)) * RK / WEAP[type].size, 0.2, 1) : 1 });
+  projectiles.push({ id: ++projId, x, y, vx, vy, type, owner, age: 0, rot: owner ? Math.atan2(vx, -vy) : 0, spin: type === "bumer" ? (vx < 0 ? -16 : 16) : rand(-8, 8), s0: owner ? clamp(rPoopS(Math.max(0.06, power)) * RK / WEAP[type].size, 0.2, 1) : 1 });
 }
 let shooterTeam = null, shotHit = false;
 function fire() {
@@ -1159,6 +1213,7 @@ function update(dt) {
     if (r) {
       projectiles.splice(projectiles.indexOf(p), 1);
       if (r === "hit") explode(p.x, p.y, p.type);
+      else if (r === "catch") bumerCatch(p);
       else if (r === "water") { splash(p.x, WATER, 14); sndPlop(); }
     }
   }
@@ -1190,7 +1245,20 @@ function update(dt) {
 
 // ---------- Desenho ----------
 function ell(x, y, rx, ry) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); }
+function drawBumer(x, y, s, rot) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot || 0); ctx.scale(s, s);
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  const arm = () => { ctx.beginPath(); ctx.moveTo(-9, -9); ctx.quadraticCurveTo(-1, -6, 5, 0); ctx.quadraticCurveTo(-1, 6, -9, 9); };
+  ctx.strokeStyle = "#3d220f"; ctx.lineWidth = 8.2; arm(); ctx.stroke();
+  ctx.strokeStyle = "#5e3518"; ctx.lineWidth = 6.4; arm(); ctx.stroke();
+  ctx.strokeStyle = "#8f5a2e"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-8, -10); ctx.quadraticCurveTo(-1, -7.5, 4, -1.5); ctx.stroke();
+  ctx.fillStyle = "#f2c14e";
+  for (const [dx, dy] of [[-6.5, -7.3], [-2.5, -4.6], [1.6, -1.7], [1.6, 1.7], [-2.5, 4.6], [-6.5, 7.3]]) { ctx.beginPath(); ctx.arc(dx, dy, 1.15, 0, 7); ctx.fill(); }
+  ctx.fillStyle = "#5e3518"; ell(3.5, 0, 2.6, 2.2); ctx.fillStyle = "#8f5a2e"; ell(3, -0.8, 1, 0.6);
+  ctx.restore();
+}
 function drawPoop(x, y, s, rot, type) {
+  if (type === "bumer") { drawBumer(x, y, s, rot); return; }
   const w = WEAP[type] || {};
   ctx.save(); ctx.translate(x, y); ctx.rotate(rot || 0); ctx.scale(s, s);
   ctx.fillStyle = w.color || "#5e3518";
@@ -1756,7 +1824,7 @@ function clientFire() {
   const g = active, pw = Math.max(0.06, power);
   const msg = clientPosMsg("fire"); msg.pw = r2(pw); net.tx.send("H", Object.assign({ t: "in" }, msg));
   const a = g.aim * Math.PI / 180, sp = pw * MAXV * powMul(g), L = buttPoint(g, g.face, g.aim, pw);
-  net.pred = { id: null, pred: true, x: L.x, y: L.y, vx: Math.cos(a) * g.face * sp, vy: -Math.sin(a) * sp, type: weapon, owner: g, age: 0, rot: Math.atan2(Math.cos(a) * g.face, Math.sin(a)), spin: 6, s0: clamp(rPoopS(pw) * RK / WEAP[weapon].size, 0.2, 1), sim: true, born: time };
+  net.pred = { id: null, pred: true, x: L.x, y: L.y, vx: Math.cos(a) * g.face * sp, vy: -Math.sin(a) * sp, type: weapon, owner: g, age: 0, rot: Math.atan2(Math.cos(a) * g.face, Math.sin(a)), spin: weapon === "bumer" ? (Math.cos(a) * g.face < 0 ? -16 : 16) : 6, s0: clamp(rPoopS(pw) * RK / WEAP[weapon].size, 0.2, 1), sim: true, born: time };
   projectiles.push(net.pred);
   g.throwT = 0.35; sndFart(weapon === "mega"); net.recentFart = time;
   charging = false; power = 0; drag = null; net.fired = true;
@@ -2269,6 +2337,11 @@ function renderInner() {
   for (const p of projectiles) {
     if (p.done) continue;
     if (p.type === "balao") { ctx.globalAlpha = .4; ctx.fillStyle = "#fff3a0"; ell(p.x, p.y, 10, 10); ctx.globalAlpha = 1; if (Math.random() < .5) particles.push({ kind: "spark", x: p.x, y: p.y, vx: 0, vy: 0, life: .5, t: 0, size: 2.5 }); }
+    if (p.type === "bumer") {
+      const tr = p.tr || (p.tr = []); tr.push(p.x, p.y); if (tr.length > 56) tr.splice(0, 2);
+      for (let i = 0; i < tr.length; i += 2) { const f = i / tr.length; ctx.globalAlpha = f * 0.7; ctx.fillStyle = i % 4 ? "#f2c14e" : "#fff6d0"; ctx.beginPath(); ctx.arc(tr[i], tr[i + 1], 1 + f * 2.2, 0, 7); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    }
     drawPoop(p.x, p.y, WEAP[p.type].size * (p.s0 + (1 - p.s0) * Math.min(1, p.age * 3)), p.rot, p.type);
     if (p.type !== "mini") drawFlies(p.x, p.y, 2, 14);
   }
