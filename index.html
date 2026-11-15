@@ -256,9 +256,10 @@ const WEAP = {
   mini:   { name: "mini",         icon: "",       r: 17, dmg: 16, size: 0.55 },
   balao:  { name: "Bosta-Balão",  icon: "🎈💩",   r: 20, dmg: 10, size: 1.0, color: "#e0a020", hi: "#fff2a8" },
   bumer:  { name: "Bosta Bumerangue", icon: "🪃💩", r: 24, dmg: 20, size: 1.05 },
+  tele:   { name: "Bosta Teletransporte", icon: "🌀💩", r: 0, dmg: 10, size: 1.0, color: "#6b2fb3", hi: "#a678ff" },
 };
-const WEAP_ORDER = ["bosta", "tripla", "grude", "bumer", "mega", "balao"];
-const AMMO = { bosta: Infinity, tripla: 2, grude: 2, bumer: 1, mega: 1, balao: 0 };
+const WEAP_ORDER = ["bosta", "tripla", "grude", "bumer", "tele", "mega", "balao"];
+const AMMO = { bosta: Infinity, tripla: 2, grude: 2, bumer: 1, tele: 1, mega: 1, balao: 0 };
 
 const TEAMS_DEF = [
   { key: "team0", name: "Peludos",    color: "#e5484d", names: ["Kong", "Bongo", "Tonho"] },
@@ -303,7 +304,7 @@ const STR = {
     wind: "VENTO", tabSwap: "Tab: trocar", kbHint: "← → andar · ↑ ↓ mirar · Espaço atirar · Enter pular",
     touchHintS: "👆 Puxe para trás e solte", touchHintL: "👆 Puxe para trás como um estilingue · solte para atirar",
     playOnline: "🌐 Jogar online", onlineTitle: "🌐 Jogar online", yourName: "Seu nome", createRoom: "Criar sala", orJoin: "Ou entre numa sala com o código", join: "Entrar", onlineNote: "Cada jogador controla um gorila. A sala tem uma vaga por gorila (de 2 a 6 jogadores, conforme os gorilas por time); os gorilas sem jogador viram bots.", roomCode: "Código da sala", shareCode: "Mande este código para os seus amigos.", joinTeam: "Entrar neste time", startMatch: "COMEÇAR!", back: "Voltar", waitHost: "Esperando o anfitrião começar…", connecting: "Conectando…", notFound: "Sala não encontrada. Confira o código.", roomFull: "A sala está cheia ({n} jogadores no máximo).", alreadyStarted: "A partida dessa sala já começou.", hostLeft: "O anfitrião saiu da sala.", netErr: "Não foi possível conectar. Verifique a internet e tente de novo.", netLoadErr: "Não foi possível carregar o modo online. Verifique a internet.", codeInvalid: "O código tem 6 letras.", needBoth: "Precisa de pelo menos 2 jogadores na sala.", canStart: "{n} jogador(es) na sala. As vagas vazias serão bots. Pode começar!", you: "você", player: "Jogador", yourTurn: "Sua vez, {n}!", playerLeft: "{n} saiu da partida",
-    botSlot: "bot", capacity: "Jogadores: {a}/{b}", tooManyForN: "Um time tem mais de {n} jogadores. Mude alguém de time primeiro.", emo_beat: "Bater no peito", emo_laugh: "Gargalhar", emo_butt: "Mostrar a bunda", emo_dance: "Dançar", emo_come: "Vem!", emo_sniff: "Cheirar a mão", emoTxt_beat: "TUM TUM!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Toma!", emoTxt_dance: "♪ ♫", emoTxt_come: "Vem!", emoTxt_sniff: "Ugh…", w_bosta: "Bosta", w_tripla: "Bosta Tripla", w_mega: "Mega Bosta", w_grude: "Bosta Grudenta", w_balao: "Bosta-Balão", w_bumer: "Bosta Bumerangue", caught: "PEGOU!", updAvail: "Nova versão do jogo!", updNow: "Atualizar", bonus: "+1 BOSTA-BALÃO!",
+    botSlot: "bot", capacity: "Jogadores: {a}/{b}", tooManyForN: "Um time tem mais de {n} jogadores. Mude alguém de time primeiro.", emo_beat: "Bater no peito", emo_laugh: "Gargalhar", emo_butt: "Mostrar a bunda", emo_dance: "Dançar", emo_come: "Vem!", emo_sniff: "Cheirar a mão", emoTxt_beat: "TUM TUM!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Toma!", emoTxt_dance: "♪ ♫", emoTxt_come: "Vem!", emoTxt_sniff: "Ugh…", w_bosta: "Bosta", w_tripla: "Bosta Tripla", w_mega: "Mega Bosta", w_grude: "Bosta Grudenta", w_balao: "Bosta-Balão", w_bumer: "Bosta Bumerangue", w_tele: "Bosta Teletransporte", caught: "PEGOU!", updAvail: "Nova versão do jogo!", updNow: "Atualizar", bonus: "+1 BOSTA-BALÃO!",
     install: "📲 Instalar o jogo", iosHint: "📲 Para instalar: toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>.",
   },
   en: {
@@ -321,7 +322,7 @@ const STR = {
     wind: "WIND", tabSwap: "Tab: switch", kbHint: "← → walk · ↑ ↓ aim · Space throw · Enter jump",
     touchHintS: "👆 Pull back and release", touchHintL: "👆 Pull back like a slingshot · release to throw",
     playOnline: "🌐 Play online", onlineTitle: "🌐 Play online", yourName: "Your name", createRoom: "Create room", orJoin: "Or join a room with its code", join: "Join", onlineNote: "Each player controls one gorilla. The room has one spot per gorilla (2 to 6 players, depending on gorillas per team); gorillas without a player become bots.", roomCode: "Room code", shareCode: "Send this code to your friends.", joinTeam: "Join this team", startMatch: "START!", back: "Back", waitHost: "Waiting for the host to start…", connecting: "Connecting…", notFound: "Room not found. Check the code.", roomFull: "The room is full ({n} players max).", alreadyStarted: "That room's match has already started.", hostLeft: "The host left the room.", netErr: "Couldn't connect. Check your internet and try again.", netLoadErr: "Couldn't load online mode. Check your internet.", codeInvalid: "The code has 6 letters.", needBoth: "You need at least 2 players in the room.", canStart: "{n} player(s) in the room. Empty spots will be bots. Ready to start!", you: "you", player: "Player", yourTurn: "Your turn, {n}!", playerLeft: "{n} left the match",
-    botSlot: "bot", capacity: "Players: {a}/{b}", tooManyForN: "A team has more than {n} players. Move someone to the other team first.", emo_beat: "Chest beat", emo_laugh: "Laugh", emo_butt: "Moon", emo_dance: "Dance", emo_come: "Come here!", emo_sniff: "Sniff hand", emoTxt_beat: "THUMP THUMP!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Take that!", emoTxt_dance: "♪ ♫", emoTxt_come: "Come here!", emoTxt_sniff: "Ugh…", w_bosta: "Poop", w_tripla: "Triple Poop", w_mega: "Mega Poop", w_grude: "Sticky Poop", w_balao: "Balloon Poop", w_bumer: "Boomerang Poop", caught: "CAUGHT!", updAvail: "New version available!", updNow: "Update", bonus: "+1 BALLOON POOP!",
+    botSlot: "bot", capacity: "Players: {a}/{b}", tooManyForN: "A team has more than {n} players. Move someone to the other team first.", emo_beat: "Chest beat", emo_laugh: "Laugh", emo_butt: "Moon", emo_dance: "Dance", emo_come: "Come here!", emo_sniff: "Sniff hand", emoTxt_beat: "THUMP THUMP!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Take that!", emoTxt_dance: "♪ ♫", emoTxt_come: "Come here!", emoTxt_sniff: "Ugh…", w_bosta: "Poop", w_tripla: "Triple Poop", w_mega: "Mega Poop", w_grude: "Sticky Poop", w_balao: "Balloon Poop", w_bumer: "Boomerang Poop", w_tele: "Teleport Poop", caught: "CAUGHT!", updAvail: "New version available!", updNow: "Update", bonus: "+1 BALLOON POOP!",
     install: "📲 Install the game", iosHint: "📲 To install: tap <b>Share</b>, then <b>Add to Home Screen</b>.",
   },
   de: {
@@ -339,7 +340,7 @@ const STR = {
     wind: "WIND", tabSwap: "Tab: wechseln", kbHint: "← → laufen · ↑ ↓ zielen · Leertaste werfen · Enter springen",
     touchHintS: "👆 Zurückziehen und loslassen", touchHintL: "👆 Wie eine Steinschleuder zurückziehen · loslassen zum Werfen",
     playOnline: "🌐 Online spielen", onlineTitle: "🌐 Online spielen", yourName: "Dein Name", createRoom: "Raum erstellen", orJoin: "Oder tritt mit dem Code einem Raum bei", join: "Beitreten", onlineNote: "Jeder Spieler steuert einen Gorilla. Der Raum hat einen Platz pro Gorilla (2 bis 6 Spieler, je nach Gorillas pro Team); Gorillas ohne Spieler werden Bots.", roomCode: "Raumcode", shareCode: "Schick diesen Code an deine Freunde.", joinTeam: "Diesem Team beitreten", startMatch: "LOS!", back: "Zurück", waitHost: "Warte, bis der Gastgeber startet…", connecting: "Verbinde…", notFound: "Raum nicht gefunden. Prüfe den Code.", roomFull: "Der Raum ist voll (max. {n} Spieler).", alreadyStarted: "Das Spiel in diesem Raum hat schon begonnen.", hostLeft: "Der Gastgeber hat den Raum verlassen.", netErr: "Verbindung fehlgeschlagen. Prüfe dein Internet und versuch es nochmal.", netLoadErr: "Online-Modus konnte nicht geladen werden. Prüfe dein Internet.", codeInvalid: "Der Code hat 6 Buchstaben.", needBoth: "Es braucht mindestens 2 Spieler im Raum.", canStart: "{n} Spieler im Raum. Leere Plätze werden Bots. Es kann losgehen!", you: "du", player: "Spieler", yourTurn: "Du bist dran, {n}!", playerLeft: "{n} hat das Spiel verlassen",
-    botSlot: "Bot", capacity: "Spieler: {a}/{b}", tooManyForN: "Ein Team hat mehr als {n} Spieler. Verschiebe zuerst jemanden ins andere Team.", emo_beat: "Brust trommeln", emo_laugh: "Lachen", emo_butt: "Hintern zeigen", emo_dance: "Tanzen", emo_come: "Komm her!", emo_sniff: "Hand schnüffeln", emoTxt_beat: "BUMM BUMM!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Da hast du's!", emoTxt_dance: "♪ ♫", emoTxt_come: "Komm her!", emoTxt_sniff: "Igitt…", w_bosta: "Kacke", w_tripla: "Dreifach-Kacke", w_mega: "Mega-Kacke", w_grude: "Klebe-Kacke", w_balao: "Ballon-Kacke", w_bumer: "Bumerang-Kacke", caught: "GEFANGEN!", updAvail: "Neue Version verfügbar!", updNow: "Aktualisieren", bonus: "+1 BALLON-KACKE!",
+    botSlot: "Bot", capacity: "Spieler: {a}/{b}", tooManyForN: "Ein Team hat mehr als {n} Spieler. Verschiebe zuerst jemanden ins andere Team.", emo_beat: "Brust trommeln", emo_laugh: "Lachen", emo_butt: "Hintern zeigen", emo_dance: "Tanzen", emo_come: "Komm her!", emo_sniff: "Hand schnüffeln", emoTxt_beat: "BUMM BUMM!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Da hast du's!", emoTxt_dance: "♪ ♫", emoTxt_come: "Komm her!", emoTxt_sniff: "Igitt…", w_bosta: "Kacke", w_tripla: "Dreifach-Kacke", w_mega: "Mega-Kacke", w_grude: "Klebe-Kacke", w_balao: "Ballon-Kacke", w_bumer: "Bumerang-Kacke", w_tele: "Teleport-Kacke", caught: "GEFANGEN!", updAvail: "Neue Version verfügbar!", updNow: "Aktualisieren", bonus: "+1 BALLON-KACKE!",
     install: "📲 Spiel installieren", iosHint: "📲 Zum Installieren: Tippe auf <b>Teilen</b> und dann auf <b>Zum Home-Bildschirm</b>.",
   },
 };
@@ -815,6 +816,53 @@ function bumerPass(p, g, back) {
   shake = Math.min(18, shake + 5); camFocus = { x: g.x, y: g.y - 30 };
   sndSplat(false, true);
 }
+// Bosta Teletransporte: leva quem atirou para onde ela cair (sem cratera); acerto direto tira 10
+let teleEvt = null;
+function teleSparks(x, y, n, sp) { for (let i = 0; i < n; i++) { const a = rand(0, 7), v = rand(20, sp); particles.push({ kind: "spark", x: x + rand(-6, 6), y: y + rand(-10, 4), vx: Math.cos(a) * v, vy: Math.sin(a) * v - 30, life: rand(.5, 1.1), t: 0, size: rand(2, 4), color: Math.random() < .5 ? "#e9d8ff" : "#a678ff" }); } }
+function teleLand(p, r) {
+  const g = p.owner;
+  if (r === "out" || !g || g.dead || g.gone) return;
+  camFocus = { x: p.x, y: p.y - 30 };
+  for (let i = 0; i < 14; i++) { const a = rand(0, 7), v = rand(60, 200); particles.push({ kind: "chunk", x: p.x, y: p.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 120, life: rand(.6, 1.1), t: 0, size: rand(2, 4), color: Math.random() < .6 ? "#6b2fb3" : "#a678ff" }); }
+  teleSparks(p.x, p.y, 18, 160); sndSplat(false, true); shake = Math.min(18, shake + 4);
+  if (r === "water") { splash(p.x, WATER, 14); startTele(g, clamp(p.x, 12, W - 12), WATER + 16); return; }
+  let tgt = null;
+  for (const o of gorillas) if (o !== g && !o.dead && !o.gone && Math.abs(p.x - o.x) < 14 && p.y > o.y - 36 && p.y <= o.y + 2) tgt = o;
+  let tx = p.x, ty = p.y;
+  if (tgt) { hurt(tgt, 10); if (tgt.team !== shooterTeam) shotHit = true; tgt.hitT = .5; tx = tgt.x + (g.x < tgt.x ? -24 : 24); ty = tgt.y - 2; }
+  tx = clamp(tx, 12, W - 12);
+  for (let k = 0; k < 260 && (S(tx, ty) || S(tx, ty - 22)); k++) ty--;
+  startTele(g, tx, ty);
+}
+function startTele(g, tx, ty) {
+  const i = gorillas.indexOf(g);
+  netEvent({ s: "teleAnim", a: [i, Math.round(g.x), Math.round(g.y), Math.round(tx), Math.round(ty)] });
+  teleEvt = { g, t: 0, fx: g.x, fy: g.y, tx, ty, moved: false };
+  sndWhoosh();
+}
+function teleUpdate(dt) {
+  const e = teleEvt; if (!e) return;
+  e.t += dt; const g = e.g;
+  if (e.t < .55) { g.tvis = 1 - e.t / .55; if (Math.random() < .5) teleSparks(g.x, g.y - 16, 1, 60); }
+  else if (e.t < .65) g.tvis = 0;
+  else {
+    if (!e.moved) {
+      e.moved = true;
+      if (!e.remote) { g.x = e.tx; g.y = e.ty; g.vx = 0; g.vy = 0; g.rx = 0; g.ry = 0; if (g.stuck > 0) { g.stuck = 0; g.goo = []; } }
+      teleSparks(e.tx, e.ty - 16, 26, 170); camFocus = { x: e.tx, y: e.ty - 30 };
+    }
+    g.tvis = Math.min(1, (e.t - .65) / .5);
+  }
+  if (e.t >= 1.15) { g.tvis = undefined; g.dizzyUntil = time + 2.6; teleEvt = null; }
+}
+function drawTele() {
+  const e = teleEvt; if (!e) return;
+  const ring = (x, y, r, a) => { if (a <= 0) return; ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.scale(1, .35); for (let i = 0; i < 3; i++) { ctx.strokeStyle = i % 2 ? "#c9a7ff" : "#7b3fe4"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, r * (1 - i * .22), time * 6 + i, time * 6 + i + 4.6); ctx.stroke(); } ctx.restore(); };
+  const t = e.t;
+  ring(e.fx, e.fy, 22, Math.min(1, t * 4) * (1 - clamp((t - .6) / .4, 0, 1)));
+  ring(e.tx, e.ty, 26, Math.min(1, t * 3) * (t < 1 ? 1 : Math.max(0, (1.15 - t) / .15)));
+  if (t > .5 && t < 1.1) { ctx.globalAlpha = .35 * (1 - Math.abs(t - .8) / .3); ctx.fillStyle = "#d9c2ff"; ctx.fillRect(e.tx - 11, e.ty - 400, 22, 400); ctx.globalAlpha = 1; }
+}
 function bumerCatch(p) {
   const g = p.owner; if (!g || g.dead) return;
   teams[g.team].ammo.bumer = (teams[g.team].ammo.bumer || 0) + 1;
@@ -1206,14 +1254,15 @@ function update(dt) {
     }
   }
 
-  balloonUpdate(dt); updateDrips(dt); emoteTick(dt);
+  balloonUpdate(dt); teleUpdate(dt); updateDrips(dt); emoteTick(dt);
   for (const g of gorillas) { if (g.lookUpT > 0) g.lookUpT -= dt; if (!balloonEvt && g.cover > 0) g.cover = Math.max(0, g.cover - dt / 6); }
   for (const p of projectiles.slice()) {
     const r = projStep(p, dt);
     p.rot += p.spin * dt;
     if (r) {
       projectiles.splice(projectiles.indexOf(p), 1);
-      if (r === "hit") explode(p.x, p.y, p.type);
+      if (p.type === "tele") teleLand(p, r);
+      else if (r === "hit") explode(p.x, p.y, p.type);
       else if (r === "catch") bumerCatch(p);
       else if (r === "water") { splash(p.x, WATER, 14); sndPlop(); }
     }
@@ -1235,7 +1284,7 @@ function update(dt) {
   if (state === "settle") {
     settleT += dt;
     const moving = gorillas.some(g => !g.gone && (g.vx !== 0 || g.vy !== 0 || !grounded(g)));
-    if (!balloonEvt && ((settleT > 1.8 && !moving) || settleT > 7)) processDeaths();
+    if (!balloonEvt && !teleEvt && ((settleT > 1.8 && !moving) || settleT > 7)) processDeaths();
   }
   if (state === "wait") { waitT -= dt; if (waitT <= 0) nextTurn(); }
 
@@ -1274,6 +1323,13 @@ function drawPoop(x, y, s, rot, type) {
   if (type === "grude") { ell(-5, 7, 1.4, 3.2); ell(3, 7.5, 1.2, 3.8); ell(7, 6, 1, 2.4); }
   ctx.fillStyle = w.hi || "#8f5a2e";
   ell(-3, 2.6, 3.2, 1.3); ell(-2.4, -1.8, 2.4, 1.1); ell(-1.4, -5.6, 1.5, 0.9);
+  if (type === "tele") {
+    ctx.strokeStyle = "#e9d8ff"; ctx.lineWidth = 1.1; ctx.beginPath();
+    for (let i = 0; i <= 26; i++) { const a = i * .45 + time * 8, r = .3 + i * .27, px = Math.cos(a) * r * 1.3, py = Math.sin(a) * r * .6 + 1; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+    ctx.stroke();
+    ctx.fillStyle = "#fff"; ell(-2.5, -1, 1.6, 1.6); ell(2.5, -1, 1.6, 1.6);
+    ctx.fillStyle = "#2a0d4d"; const ox = Math.cos(time * 9) * .6, oy = Math.sin(time * 9) * .6; ell(-2.2 + ox, -1 + oy, .8, .8); ell(2.8 + ox, -1 + oy, .8, .8);
+  }
   ctx.restore();
 }
 function drawFlies(x, y, n, rad) {
@@ -1299,7 +1355,12 @@ function drawGorilla(g) {
   const isActive = g === active && (state === "aim");
   const air = !grounded(g);
   const RP = rigPose(g, isActive, air);
+  if (g.tvis !== undefined) {
+    if (g.tvis > .02) { ctx.save(); ctx.translate(g.x, g.y); ctx.scale(g.tvis, 1 + (1 - g.tvis) * .8); ctx.translate(-g.x, -g.y); drawRig(g, RP.P, RP.face); ctx.restore(); }
+    return;
+  }
   drawRig(g, RP.P, RP.face);
+  if (g.dizzyUntil && time < g.dizzyUntil) { ctx.fillStyle = "#ffd23f"; for (let i = 0; i < 3; i++) { const a = time * 5 + i * 2.09; drawSpark(g.x + Math.cos(a) * 12, g.y - 44 + Math.sin(a) * 3.5, 3, "#ffd23f"); } }
 
   if (g.stuck > 0) drawGoo(g);
   drawEmoteBubble(g);
@@ -1567,6 +1628,7 @@ function rigPose(g, isActive, air) {
   if (g.shakeT > 0) { const k = 1 - g.shakeT / 0.9; P.rot = Math.sin(k * 40) * .16 * (1 - k); P.hr = (P.hr || 0) + Math.sin(k * 40) * .3 * (1 - k); P.eyes = "squint"; }
   if (g.staggerT > 0) { const k = 1 - g.staggerT / 0.6; P.rot = (P.rot || 0) + Math.sin(k * 18) * .14 * (1 - k); }
   if (g.hurtT > 0 && !P.eyes) P.mouth = "o";
+  if (g.dizzyUntil && time < g.dizzyUntil && !air) { P = Object.assign({}, P); P.rot = (P.rot || 0) + Math.sin(time * 6) * .07; P.hr = (P.hr || 0) + Math.sin(time * 4.5) * .22; P.eyes = "half"; P.mouth = "wavy"; }
   return { P, face };
 }
 function drawRig(g, P, face) {
@@ -2023,7 +2085,7 @@ function clientUpdate(dt) {
     const r = projStep(p, dt); p.rot += (p.spin || 0) * dt;
     if (r) p.done = true;
   }
-  updateDrips(dt); emoteTick(dt);
+  teleUpdate(dt); updateDrips(dt); emoteTick(dt);
   for (const c of clouds) { c.x += (wind * 0.12 + 6) * dt; if (c.x > W + 300) c.x = -300; if (c.x < -300) c.x = W + 300; }
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i]; p.t += dt;
@@ -2191,6 +2253,7 @@ function sndLaugh() {
 }
 SND.sndLaugh = () => sndLaugh();
 SND.bumCatchAnim = i => bumCatchAnim(i);
+SND.teleAnim = (i, fx, fy, tx, ty) => { const g = gorillas[i]; if (g) teleEvt = { g, t: 0, fx, fy, tx, ty, moved: false, remote: true }; };
 SND.sndWhoosh = () => sndWhoosh();
 function bumCatchAnim(i) { netEvent({ s: "bumCatchAnim", a: [i] }); const g = gorillas[i]; if (g) g.catchAt = time; }
 function sndWhoosh() {
@@ -2397,9 +2460,14 @@ function renderInner() {
   drawBalloon();
 
   drawShiny();
+  drawTele();
   for (const p of projectiles) {
     if (p.done) continue;
     if (p.type === "balao") { ctx.globalAlpha = .4; ctx.fillStyle = "#fff3a0"; ell(p.x, p.y, 10, 10); ctx.globalAlpha = 1; if (Math.random() < .5) particles.push({ kind: "spark", x: p.x, y: p.y, vx: 0, vy: 0, life: .5, t: 0, size: 2.5 }); }
+    if (p.type === "tele") {
+      ctx.globalAlpha = .3 + .12 * Math.sin(time * 12); ctx.fillStyle = "#c9a7ff"; ell(p.x, p.y, 13, 13); ctx.globalAlpha = 1;
+      if (Math.random() < .6) particles.push({ kind: "spark", x: p.x + rand(-4, 4), y: p.y + rand(-4, 4), vx: rand(-15, 15), vy: rand(-15, 15), life: .6, t: 0, size: rand(1.5, 3), color: Math.random() < .5 ? "#e9d8ff" : "#a678ff" });
+    }
     if (p.type === "bumer") {
       const tr = p.tr || (p.tr = []); tr.push(p.x, p.y); if (tr.length > 56) tr.splice(0, 2);
       for (let i = 0; i < tr.length; i += 2) { const f = i / tr.length; ctx.globalAlpha = f * 0.7; ctx.fillStyle = i % 4 ? "#f2c14e" : "#fff6d0"; ctx.beginPath(); ctx.arc(tr[i], tr[i + 1], 1 + f * 2.2, 0, 7); ctx.fill(); }
@@ -2417,7 +2485,7 @@ function renderInner() {
       ctx.globalAlpha = 0.35 * f; ctx.fillStyle = "#8fbf3a";
       ell(p.x + Math.sin(p.t * 3 + p.ph) * 6, p.y, p.size * (1 + p.t * 0.5), p.size * 0.8 * (1 + p.t * 0.5));
     } else if (p.kind === "spark") {
-      ctx.globalAlpha = f; drawSpark(p.x, p.y, p.size * (0.5 + f), "#fff0a0");
+      ctx.globalAlpha = f; drawSpark(p.x, p.y, p.size * (0.5 + f), p.color || "#fff0a0");
     } else if (p.kind === "dust") {
       ctx.globalAlpha = 0.55 * f; ctx.fillStyle = "#c8a77a";
       ell(p.x, p.y, p.size * (1 + p.t * 3), p.size * 0.7 * (1 + p.t * 2));
@@ -2922,7 +2990,7 @@ window.gorilasT = t;
   }
   // Atualização automática: confere se há versão nova ao abrir, ao voltar para o app e a cada 10 minutos.
   // No menu, recarrega sozinho; no meio de uma partida, mostra um aviso para não interromper o jogo.
-  const BUILD = "v19";
+  const BUILD = "v20";
   let banner = null, pending = false, latest = "";
   const busy = () => { try { return window.gorilasBusy && window.gorilasBusy(); } catch (e) { return false; } };
   const tr = k => (window.gorilasT ? window.gorilasT(k) : k);
