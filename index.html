@@ -2758,7 +2758,8 @@ requestAnimationFrame(frame);
   // escolhe o lado do cotovelo como num braço de verdade: para trás e para baixo
   function armIK(S, T, l1, l2) {
     const a = ik(S, T, l1, l2, 1), b = ik(S, T, l1, l2, -1);
-    const sc = q => -q.e[0] + 0.5 * q.e[1];
+    // mão acima do ombro (ex.: cheirando a mão): cotovelo para baixo; senão, para trás e para baixo
+    const sc = q => T[1] < S[1] ? q.e[1] : -q.e[0] + 0.5 * q.e[1];
     return sc(a) >= sc(b) ? a : b;
   }
   function limb(S, E, H, col, w) { cx.strokeStyle = col; cx.lineCap = "round"; cx.lineJoin = "round"; cx.lineWidth = w; cx.beginPath(); cx.moveTo(S[0], S[1]); cx.lineTo(E[0], E[1]); cx.lineTo(H[0], H[1]); cx.stroke(); }
