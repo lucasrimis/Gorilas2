@@ -261,7 +261,7 @@ const WEAP = {
   balao:  { name: "Bosta-Balão",  icon: "🎈💩",   r: 20, dmg: 10, size: 1.0, color: "#e0a020", hi: "#fff2a8" },
   bumer:  { name: "Bosta Bumerangue", icon: "🪃💩", r: 24, dmg: 20, size: 1.05 },
   multi:  { name: "Bosta Multiplicadora", icon: "🔀💩", r: 28, dmg: 35, size: 1.05 },
-  mini:   { name: "Bostinha", icon: "💩", r: 15, dmg: 12, size: 0.62 },
+  mmini:  { name: "Bostinha", icon: "💩", r: 15, dmg: 12, size: 0.62 },
   tele:   { name: "Bosta Teletransporte", icon: "🌀💩", r: 0, dmg: 10, size: 1.0, color: "#6b2fb3", hi: "#a678ff" },
 };
 const WEAP_ORDER = ["bosta", "tripla", "grude", "multi", "bumer", "tele", "mega", "balao"];
@@ -855,7 +855,7 @@ function splitMulti(p) {
   const sp = Math.hypot(p.vx, p.vy), base = Math.atan2(p.vy, p.vx);
   for (let i = 0; i < MULTI_N; i++) {
     const a = base + (i / (MULTI_N - 1) - .5) * MULTI_FAN * 2, v = sp * rand(.85, 1.05);
-    spawnProj(p.x, p.y, Math.cos(a) * v, Math.sin(a) * v - 30, "mini", p.owner);
+    spawnProj(p.x, p.y, Math.cos(a) * v, Math.sin(a) * v - 30, "mmini", p.owner);
   }
   projectiles = projectiles.filter(q => q !== p);
   splitFx(p.x, p.y, false); shake = Math.min(18, shake + 5); screenFlash = 0.22;
@@ -957,7 +957,7 @@ function bumerHand(g, face) { return { x: g.x + face * RK * 26, y: g.y - RK * 44
 function launchFrom(g) { return weapon === "bumer" ? bumerHand(g, g.face) : buttPoint(g, g.face, g.aim, Math.max(0.06, power)); }
 let projId = 0;
 function spawnProj(x, y, vx, vy, type, owner) {
-  projectiles.push({ id: ++projId, x, y, vx, vy, type, owner, age: 0, rot: owner ? Math.atan2(vx, -vy) : 0, spin: type === "bumer" ? (vx < 0 ? -16 : 16) : rand(-8, 8), s0: owner && type !== "bumer" && type !== "mini" ? clamp(rPoopS(Math.max(0.06, power)) * RK / WEAP[type].size, 0.2, 1) : 1 });
+  projectiles.push({ id: ++projId, x, y, vx, vy, type, owner, age: 0, rot: owner ? Math.atan2(vx, -vy) : 0, spin: type === "bumer" ? (vx < 0 ? -16 : 16) : rand(-8, 8), s0: owner && type !== "bumer" && type !== "mmini" ? clamp(rPoopS(Math.max(0.06, power)) * RK / WEAP[type].size, 0.2, 1) : 1 });
 }
 let shooterTeam = null, shooterG = null, shotHit = false;
 function fire() {
@@ -1228,32 +1228,112 @@ function simShot(g, face, ang, pw) {
   g.face = saveFace;
   return res;
 }
+// A IA calcula o melhor tiro e depois compara o que cada bosta disponível renderia ali
+// (dano esperado, inimigos agrupados, risco para o próprio time, posição) menos o "custo" de gastar munição rara.
+const AI_COST = { bosta: 0, tripla: 3, grude: 4, multi: 4, bumer: 4, tele: 3, mega: 20, balao: -50 };
+function aiBlast(type, x, y, g) {
+  const w = WEAP[type], R = w.r * 2.1; let v = 0;
+  for (const o of gorillas) {
+    if (o.dead || o.gone) continue;
+    const d = Math.hypot(o.x - x, o.y - 14 - y); if (d >= R) continue;
+    const dm = Math.min(o.hp, w.dmg * Math.min(1, (1 - d / R) * 1.25));
+    if (o.team !== g.team) v += dm + (dm >= o.hp - .5 ? 40 : 0);
+    else if (o === g) v -= dm * 1.5;
+    else v -= Math.min(dm, Math.max(0, o.hp - 1)) + 15;
+  }
+  return v;
+}
+// média do dano considerando que a mira do bot pode errar um pouco para os lados
+function aiExp(type, x, y, g) { const sg = 12 + (opts.err || 0) * 5; return (aiBlast(type, x - sg, y, g) + aiBlast(type, x, y, g) + aiBlast(type, x + sg, y, g)) / 3; }
+function aiBumer(g, tgts) {
+  let best = null;
+  for (const tg of tgts) {
+    const face = tg.x >= g.x ? 1 : -1, L = bumerHand(g, face);
+    for (let a = 6; a <= 80; a += 7) for (let pw = 0.25; pw <= 1.001; pw += 0.08) {
+      const ang = a * Math.PI / 180, sp = pw * MAXV * powMul(g);
+      const P = { sim: true, type: "bumer", x: L.x, y: L.y, vx: Math.cos(ang) * face * sp, vy: -Math.sin(ang) * sp, owner: g, age: 0, spin: face < 0 ? -16 : 16 };
+      let r = null; for (let t = 0; t < 8 && !r; t += STEP) r = projStep(P, STEP);
+      let v = 0;
+      for (const k of Object.keys(P.hits || {})) { const o = gorillas[parseInt(k)]; if (!o) continue; const dm = k.endsWith("v") ? 25 : 20; v += o.team !== g.team ? dm : -(Math.min(dm, Math.max(0, o.hp - 1)) + 15); }
+      if (r === "catch") v += 8;
+      else if (r === "hit") v += aiBlast("bumer", P.x, P.y, g);
+      if (!best || v > best.v) best = { v, a, p: pw, face, tgt: tg };
+    }
+  }
+  return best;
+}
+function aiTele(g, enemies) {
+  let best = null;
+  for (const face of [1, -1]) for (let a = 20; a <= 85; a += 7) for (let pw = 0.2; pw <= 1.001; pw += 0.08) {
+    const r = simShot(g, face, a, pw);
+    if (!r || r.water || r.x < 40 || r.x > W - 40) continue;
+    const near = Math.min(...enemies.map(e => Math.hypot(e.x - r.x, e.y - r.y)));
+    if (near < 140 || near > 450) continue;
+    const v = 10 + clamp((g.y - r.y) * 0.08, -6, 14) - Math.abs(near - 280) * 0.02;
+    if (!best || v > best.v) best = { v, a, p: pw, face };
+  }
+  return best;
+}
 function aiPlan() {
   const g = active, T = teams[g.team];
   const enemies = gorillas.filter(e => !e.dead && e.team !== g.team).sort((a, b) => Math.abs(a.x - g.x) - Math.abs(b.x - g.x));
   const friends = gorillas.filter(e => !e.dead && e.team === g.team);
-  let wpn = "bosta";
-  if (T.ammo.balao > 0) wpn = "balao";
-  else if (T.ammo.mega > 0 && Math.random() < 0.25) wpn = "mega";
-  else if (T.ammo.tripla > 0 && Math.random() < 0.3) wpn = "tripla";
-  else if (T.ammo.grude > 0 && Math.random() < 0.3) wpn = "grude";
-  const wr = WEAP[wpn].r;
-  let best = { score: 1e9, a: 45, p: 0.6, face: g.face };
-  for (const tg of enemies.slice(0, 2)) {
+  const tgts = enemies.slice(0, 2);
+  // melhor tiro "comum" para cada alvo próximo
+  const shots = [];
+  for (const tg of tgts) {
     const face = tg.x >= g.x ? 1 : -1;
+    let b = null;
     for (let a = -24; a <= 87; a += 3) for (let p = 0.18; p <= 1.001; p += 0.03) {
       const r = simShot(g, face, a, p);
       if (!r) continue;
       let sc = Math.hypot(r.x - tg.x, r.y - (tg.y - 14));
       if (r.water) sc += 120;
-      for (const f of friends) if (Math.hypot(r.x - f.x, r.y - (f.y - 14)) < wr * 2.3) sc += 600;
-      if (sc < best.score) best = { score: sc, a, p, face };
+      for (const f of friends) if (Math.hypot(r.x - f.x, r.y - (f.y - 14)) < 63) sc += 600;
+      if (!b || sc < b.score) b = { score: sc, a, p, face, x: r.x, y: r.water ? WATER : r.y, water: r.water, tgt: tg };
     }
+    if (b) shots.push(b);
   }
-  const e = opts.err;
-  best.a = clamp(best.a + rand(-1, 1) * e, -80, 88);
-  best.p = clamp(best.p + rand(-1, 1) * e * 0.011, 0.1, 1);
-  return { ...best, wpn };
+  // quanto mais apertado o jogo, menos a IA "economiza" munição
+  const myHp = friends.reduce((s, f) => s + f.hp, 0), foeHp = enemies.reduce((s, e) => s + e.hp, 0);
+  const thrift = clamp(Math.min(myHp, foeHp) / (100 * Math.max(1, friends.length)), 0.3, 1);
+  const opts2 = [];
+  const add = (wpn, v, shot) => { if (wpn !== "bosta" && !(T.ammo[wpn] > 0)) return; opts2.push({ wpn, v: v - (AI_COST[wpn] || 0) * thrift, shot }); };
+  for (const sh of shots) {
+    if (sh.water) continue;
+    add("bosta", aiExp("bosta", sh.x, sh.y, g), sh);
+    add("mega", aiExp("mega", sh.x, sh.y, g), sh);
+    let tri = aiExp("tripla", sh.x, sh.y, g); for (const off of [-45, -15, 15, 45]) tri += 0.55 * aiBlast("mini", sh.x + off, sh.y, g);
+    add("tripla", tri, sh);
+    let stick = 0; for (const e of enemies) if (!(e.stuck > 0) && e.hp > 25 && Math.hypot(e.x - sh.x, e.y - 14 - sh.y) < WEAP.grude.r * 1.6) stick += 24;
+    add("grude", aiExp("grude", sh.x, sh.y, g) + stick, sh);
+    let mv = 0; for (const off of [-56, -28, 0, 28, 56]) mv += aiBlast("mmini", sh.x + off, sh.y, g);
+    add("multi", mv, sh);
+    if (T.ammo.balao > 0) add("balao", aiBlast("bosta", sh.x, sh.y, g), sh);
+  }
+  if (T.ammo.bumer > 0) { const bb = aiBumer(g, tgts); if (bb) add("bumer", bb.v, bb); }
+  const bestPlain = opts2.filter(o => o.wpn === "bosta").reduce((m, o) => Math.max(m, o.v), -1e9);
+  if (T.ammo.tele > 0 && bestPlain < 12) { const tt = aiTele(g, enemies); if (tt) add("tele", tt.v, tt); }
+  let choice;
+  if (!opts2.length) choice = { wpn: "bosta", shot: shots[0] || { a: 45, p: 0.6, face: g.face } };
+  else {
+    opts2.sort((a, b) => b.v - a.v);
+    // um pouco de variedade: entre opções quase tão boas quanto a melhor, sorteia
+    const top = opts2.filter(o => o.v >= opts2[0].v - 7);
+    choice = top[Math.floor(Math.random() * top.length)];
+  }
+  const sh = choice.shot, e = opts.err;
+  const out = { a: sh.a, p: sh.p, face: sh.face, wpn: choice.wpn, tgt: sh.tgt || null };
+  out.a = clamp(out.a + rand(-1, 1) * e, -80, 88);
+  out.p = clamp(out.p + rand(-1, 1) * e * 0.011, 0.1, 1);
+  return out;
+}
+// bots também multiplicam a Bosta Multiplicadora: quando ela começa a cair perto do alvo
+function botSplitCheck() {
+  if (state !== "fly") return;
+  const p = multiShot(); if (!p || !p.owner || !isBot(p.owner)) return;
+  const tg = ai && ai.tgt && !ai.tgt.dead ? ai.tgt : null;
+  if (p.vy > 0 && (!tg || Math.abs(p.x - tg.x) < 130 || p.y > tg.y - 110)) { p.splitReq = true; splitMulti(p); }
 }
 function aiUpdate(dt) {
   const g = active; ai.t += dt;
@@ -1313,7 +1393,7 @@ function update(dt) {
     }
   }
 
-  balloonUpdate(dt); teleUpdate(dt); followKnocked(); updateDrips(dt); emoteTick(dt);
+  balloonUpdate(dt); teleUpdate(dt); followKnocked(); botSplitCheck(); updateDrips(dt); emoteTick(dt);
   for (const g of gorillas) { if (g.lookUpT > 0) g.lookUpT -= dt; if (!balloonEvt && g.cover > 0) g.cover = Math.max(0, g.cover - dt / 6); }
   for (const p of projectiles.slice()) {
     const r = projStep(p, dt);
@@ -3066,7 +3146,7 @@ window.gorilasT = t;
   }
   // Atualização automática: confere se há versão nova ao abrir, ao voltar para o app e a cada 10 minutos.
   // No menu, recarrega sozinho; no meio de uma partida, mostra um aviso para não interromper o jogo.
-  const BUILD = "v24";
+  const BUILD = "v25";
   let banner = null, pending = false, latest = "";
   const busy = () => { try { return window.gorilasBusy && window.gorilasBusy(); } catch (e) { return false; } };
   const tr = k => (window.gorilasT ? window.gorilasT(k) : k);

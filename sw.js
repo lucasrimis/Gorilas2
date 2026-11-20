@@ -1,5 +1,5 @@
 // Gorilas: funciona offline depois da primeira visita.
-const CACHE = "gorilas-v24";
+const CACHE = "gorilas-v25";
 const FILES = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
