@@ -260,10 +260,12 @@ const WEAP = {
   mini:   { name: "mini",         icon: "",       r: 17, dmg: 16, size: 0.55 },
   balao:  { name: "Bosta-Balão",  icon: "🎈💩",   r: 20, dmg: 10, size: 1.0, color: "#e0a020", hi: "#fff2a8" },
   bumer:  { name: "Bosta Bumerangue", icon: "🪃💩", r: 24, dmg: 20, size: 1.05 },
+  multi:  { name: "Bosta Multiplicadora", icon: "🔀💩", r: 28, dmg: 35, size: 1.05 },
+  mini:   { name: "Bostinha", icon: "💩", r: 15, dmg: 12, size: 0.62 },
   tele:   { name: "Bosta Teletransporte", icon: "🌀💩", r: 0, dmg: 10, size: 1.0, color: "#6b2fb3", hi: "#a678ff" },
 };
-const WEAP_ORDER = ["bosta", "tripla", "grude", "bumer", "tele", "mega", "balao"];
-const AMMO = { bosta: Infinity, tripla: 2, grude: 2, bumer: 1, tele: 1, mega: 1, balao: 0 };
+const WEAP_ORDER = ["bosta", "tripla", "grude", "multi", "bumer", "tele", "mega", "balao"];
+const AMMO = { bosta: Infinity, tripla: 2, grude: 2, multi: 2, bumer: 1, tele: 1, mega: 1, balao: 0 };
 
 const TEAMS_DEF = [
   { key: "team0", name: "Peludos",    color: "#e5484d", names: ["Kong", "Bongo", "Tonho"] },
@@ -282,7 +284,7 @@ let terrainDirty = true;
 let gorillas = [], teams = [], projectiles = [], particles = [], texts = [];
 let state = "menu", active = null, curTeam = 1, wind = 0, turnTime = TURN;
 let weapon = "bosta", charging = false, power = 0, drag = null;
-let settleT = 0, waitT = 0, shake = 0, time = 0;
+let settleT = 0, waitT = 0, shake = 0, time = 0, screenFlash = 0;
 let banner = { text: "", t: 9 };
 let ai = null;
 let opts = { mode: "cpu", n: 2, err: 4 };
@@ -308,7 +310,7 @@ const STR = {
     wind: "VENTO", tabSwap: "Tab: trocar", kbHint: "← → andar · ↑ ↓ mirar · Espaço atirar · Enter pular",
     touchHintS: "👆 Puxe para trás e solte", touchHintL: "👆 Puxe para trás como um estilingue · solte para atirar",
     playOnline: "🌐 Jogar online", onlineTitle: "🌐 Jogar online", yourName: "Seu nome", createRoom: "Criar sala", orJoin: "Ou entre numa sala com o código", join: "Entrar", onlineNote: "Cada jogador controla um gorila. A sala tem uma vaga por gorila (de 2 a 6 jogadores, conforme os gorilas por time); os gorilas sem jogador viram bots.", roomCode: "Código da sala", shareCode: "Mande este código para os seus amigos.", joinTeam: "Entrar neste time", startMatch: "COMEÇAR!", back: "Voltar", waitHost: "Esperando o anfitrião começar…", connecting: "Conectando…", notFound: "Sala não encontrada. Confira o código.", roomFull: "A sala está cheia ({n} jogadores no máximo).", alreadyStarted: "A partida dessa sala já começou.", hostLeft: "O anfitrião saiu da sala.", netErr: "Não foi possível conectar. Verifique a internet e tente de novo.", netLoadErr: "Não foi possível carregar o modo online. Verifique a internet.", codeInvalid: "O código tem 6 letras.", needBoth: "Precisa de pelo menos 2 jogadores na sala.", canStart: "{n} jogador(es) na sala. As vagas vazias serão bots. Pode começar!", you: "você", player: "Jogador", yourTurn: "Sua vez, {n}!", playerLeft: "{n} saiu da partida",
-    botSlot: "bot", capacity: "Jogadores: {a}/{b}", tooManyForN: "Um time tem mais de {n} jogadores. Mude alguém de time primeiro.", emo_beat: "Bater no peito", emo_laugh: "Gargalhar", emo_butt: "Mostrar a bunda", emo_dance: "Dançar", emo_come: "Vem!", emo_sniff: "Cheirar a mão", emoTxt_beat: "TUM TUM!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Toma!", emoTxt_dance: "♪ ♫", emoTxt_come: "Vem!", emoTxt_sniff: "Ugh…", w_bosta: "Bosta", w_tripla: "Bosta Tripla", w_mega: "Mega Bosta", w_grude: "Bosta Grudenta", w_balao: "Bosta-Balão", w_bumer: "Bosta Bumerangue", w_tele: "Bosta Teletransporte", caught: "PEGOU!", updAvail: "Nova versão do jogo!", updNow: "Atualizar", bonus: "+1 BOSTA-BALÃO!",
+    botSlot: "bot", capacity: "Jogadores: {a}/{b}", tooManyForN: "Um time tem mais de {n} jogadores. Mude alguém de time primeiro.", emo_beat: "Bater no peito", emo_laugh: "Gargalhar", emo_butt: "Mostrar a bunda", emo_dance: "Dançar", emo_come: "Vem!", emo_sniff: "Cheirar a mão", emoTxt_beat: "TUM TUM!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Toma!", emoTxt_dance: "♪ ♫", emoTxt_come: "Vem!", emoTxt_sniff: "Ugh…", w_bosta: "Bosta", w_tripla: "Bosta Tripla", w_mega: "Mega Bosta", w_grude: "Bosta Grudenta", w_balao: "Bosta-Balão", w_bumer: "Bosta Bumerangue", w_tele: "Bosta Teletransporte", w_multi: "Bosta Multiplicadora", tapSplit: "TOQUE NA TELA: multiplicar!", keySplit: "ESPAÇO ou clique: multiplicar!", caught: "PEGOU!", updAvail: "Nova versão do jogo!", updNow: "Atualizar", bonus: "+1 BOSTA-BALÃO!",
     install: "📲 Instalar o jogo", iosHint: "📲 Para instalar: toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>.",
   },
   en: {
@@ -326,7 +328,7 @@ const STR = {
     wind: "WIND", tabSwap: "Tab: switch", kbHint: "← → walk · ↑ ↓ aim · Space throw · Enter jump",
     touchHintS: "👆 Pull back and release", touchHintL: "👆 Pull back like a slingshot · release to throw",
     playOnline: "🌐 Play online", onlineTitle: "🌐 Play online", yourName: "Your name", createRoom: "Create room", orJoin: "Or join a room with its code", join: "Join", onlineNote: "Each player controls one gorilla. The room has one spot per gorilla (2 to 6 players, depending on gorillas per team); gorillas without a player become bots.", roomCode: "Room code", shareCode: "Send this code to your friends.", joinTeam: "Join this team", startMatch: "START!", back: "Back", waitHost: "Waiting for the host to start…", connecting: "Connecting…", notFound: "Room not found. Check the code.", roomFull: "The room is full ({n} players max).", alreadyStarted: "That room's match has already started.", hostLeft: "The host left the room.", netErr: "Couldn't connect. Check your internet and try again.", netLoadErr: "Couldn't load online mode. Check your internet.", codeInvalid: "The code has 6 letters.", needBoth: "You need at least 2 players in the room.", canStart: "{n} player(s) in the room. Empty spots will be bots. Ready to start!", you: "you", player: "Player", yourTurn: "Your turn, {n}!", playerLeft: "{n} left the match",
-    botSlot: "bot", capacity: "Players: {a}/{b}", tooManyForN: "A team has more than {n} players. Move someone to the other team first.", emo_beat: "Chest beat", emo_laugh: "Laugh", emo_butt: "Moon", emo_dance: "Dance", emo_come: "Come here!", emo_sniff: "Sniff hand", emoTxt_beat: "THUMP THUMP!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Take that!", emoTxt_dance: "♪ ♫", emoTxt_come: "Come here!", emoTxt_sniff: "Ugh…", w_bosta: "Poop", w_tripla: "Triple Poop", w_mega: "Mega Poop", w_grude: "Sticky Poop", w_balao: "Balloon Poop", w_bumer: "Boomerang Poop", w_tele: "Teleport Poop", caught: "CAUGHT!", updAvail: "New version available!", updNow: "Update", bonus: "+1 BALLOON POOP!",
+    botSlot: "bot", capacity: "Players: {a}/{b}", tooManyForN: "A team has more than {n} players. Move someone to the other team first.", emo_beat: "Chest beat", emo_laugh: "Laugh", emo_butt: "Moon", emo_dance: "Dance", emo_come: "Come here!", emo_sniff: "Sniff hand", emoTxt_beat: "THUMP THUMP!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Take that!", emoTxt_dance: "♪ ♫", emoTxt_come: "Come here!", emoTxt_sniff: "Ugh…", w_bosta: "Poop", w_tripla: "Triple Poop", w_mega: "Mega Poop", w_grude: "Sticky Poop", w_balao: "Balloon Poop", w_bumer: "Boomerang Poop", w_tele: "Teleport Poop", w_multi: "Splitting Poop", tapSplit: "TAP THE SCREEN: split!", keySplit: "SPACE or click: split!", caught: "CAUGHT!", updAvail: "New version available!", updNow: "Update", bonus: "+1 BALLOON POOP!",
     install: "📲 Install the game", iosHint: "📲 To install: tap <b>Share</b>, then <b>Add to Home Screen</b>.",
   },
   de: {
@@ -344,7 +346,7 @@ const STR = {
     wind: "WIND", tabSwap: "Tab: wechseln", kbHint: "← → laufen · ↑ ↓ zielen · Leertaste werfen · Enter springen",
     touchHintS: "👆 Zurückziehen und loslassen", touchHintL: "👆 Wie eine Steinschleuder zurückziehen · loslassen zum Werfen",
     playOnline: "🌐 Online spielen", onlineTitle: "🌐 Online spielen", yourName: "Dein Name", createRoom: "Raum erstellen", orJoin: "Oder tritt mit dem Code einem Raum bei", join: "Beitreten", onlineNote: "Jeder Spieler steuert einen Gorilla. Der Raum hat einen Platz pro Gorilla (2 bis 6 Spieler, je nach Gorillas pro Team); Gorillas ohne Spieler werden Bots.", roomCode: "Raumcode", shareCode: "Schick diesen Code an deine Freunde.", joinTeam: "Diesem Team beitreten", startMatch: "LOS!", back: "Zurück", waitHost: "Warte, bis der Gastgeber startet…", connecting: "Verbinde…", notFound: "Raum nicht gefunden. Prüfe den Code.", roomFull: "Der Raum ist voll (max. {n} Spieler).", alreadyStarted: "Das Spiel in diesem Raum hat schon begonnen.", hostLeft: "Der Gastgeber hat den Raum verlassen.", netErr: "Verbindung fehlgeschlagen. Prüfe dein Internet und versuch es nochmal.", netLoadErr: "Online-Modus konnte nicht geladen werden. Prüfe dein Internet.", codeInvalid: "Der Code hat 6 Buchstaben.", needBoth: "Es braucht mindestens 2 Spieler im Raum.", canStart: "{n} Spieler im Raum. Leere Plätze werden Bots. Es kann losgehen!", you: "du", player: "Spieler", yourTurn: "Du bist dran, {n}!", playerLeft: "{n} hat das Spiel verlassen",
-    botSlot: "Bot", capacity: "Spieler: {a}/{b}", tooManyForN: "Ein Team hat mehr als {n} Spieler. Verschiebe zuerst jemanden ins andere Team.", emo_beat: "Brust trommeln", emo_laugh: "Lachen", emo_butt: "Hintern zeigen", emo_dance: "Tanzen", emo_come: "Komm her!", emo_sniff: "Hand schnüffeln", emoTxt_beat: "BUMM BUMM!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Da hast du's!", emoTxt_dance: "♪ ♫", emoTxt_come: "Komm her!", emoTxt_sniff: "Igitt…", w_bosta: "Kacke", w_tripla: "Dreifach-Kacke", w_mega: "Mega-Kacke", w_grude: "Klebe-Kacke", w_balao: "Ballon-Kacke", w_bumer: "Bumerang-Kacke", w_tele: "Teleport-Kacke", caught: "GEFANGEN!", updAvail: "Neue Version verfügbar!", updNow: "Aktualisieren", bonus: "+1 BALLON-KACKE!",
+    botSlot: "Bot", capacity: "Spieler: {a}/{b}", tooManyForN: "Ein Team hat mehr als {n} Spieler. Verschiebe zuerst jemanden ins andere Team.", emo_beat: "Brust trommeln", emo_laugh: "Lachen", emo_butt: "Hintern zeigen", emo_dance: "Tanzen", emo_come: "Komm her!", emo_sniff: "Hand schnüffeln", emoTxt_beat: "BUMM BUMM!", emoTxt_laugh: "HA HA HA!", emoTxt_butt: "Da hast du's!", emoTxt_dance: "♪ ♫", emoTxt_come: "Komm her!", emoTxt_sniff: "Igitt…", w_bosta: "Kacke", w_tripla: "Dreifach-Kacke", w_mega: "Mega-Kacke", w_grude: "Klebe-Kacke", w_balao: "Ballon-Kacke", w_bumer: "Bumerang-Kacke", w_tele: "Teleport-Kacke", w_multi: "Teilungs-Kacke", tapSplit: "BILDSCHIRM TIPPEN: teilen!", keySplit: "LEERTASTE oder Klick: teilen!", caught: "GEFANGEN!", updAvail: "Neue Version verfügbar!", updNow: "Aktualisieren", bonus: "+1 BALLON-KACKE!",
     install: "📲 Spiel installieren", iosHint: "📲 Zum Installieren: Tippe auf <b>Teilen</b> und dann auf <b>Zum Home-Bildschirm</b>.",
   },
 };
@@ -826,6 +828,40 @@ function bumerPass(p, g, back) {
   shake = Math.min(18, shake + 5); camFocus = { x: g.x, y: g.y - 30 };
   sndSplat(false, true);
 }
+// Bosta Multiplicadora: depois de lançada, quem atirou toca na tela (ou ESPAÇO) e ela vira 5 bostinhas em leque
+const MULTI_N = 5, MULTI_FAN = 0.55;
+function multiShot() { return projectiles.find(p => p.type === "multi" && !p.done && !p.splitReq); }
+function canSplit() {
+  if (state !== "fly") return null;
+  const p = multiShot(); if (!p || !p.owner) return null;
+  if (online()) return controllerOf(p.owner) === net.id ? p : null;
+  return !paused && !teams[p.owner.team].cpu ? p : null;
+}
+function trySplit() {
+  const p = canSplit(); if (!p) return false;
+  p.splitReq = true;
+  if (isClientNet()) { net.tx.send("H", { t: "in", c: "split" }); splitFx(p.x, p.y, true); }
+  else splitMulti(p);
+  return true;
+}
+function splitFx(x, y, local) {
+  if (local) { shake = Math.min(18, shake + 5); screenFlash = 0.22; return; }
+  for (let i = 0; i < 20; i++) { const a = rand(0, 7), v = rand(60, 220); particles.push({ kind: "chunk", x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rand(.4, .7), t: 0, size: rand(1.5, 3.5), color: Math.random() < .7 ? "#6b3e1f" : "#8f5a2e" }); }
+  for (let i = 0; i < 12; i++) { const a = rand(0, 7), v = rand(40, 120); particles.push({ kind: "spark", x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rand(.35, .6), t: 0, size: rand(2, 3.5), color: "#ffd75e" }); }
+}
+function splitMulti(p) {
+  if (p.done) return;
+  p.done = true;
+  const sp = Math.hypot(p.vx, p.vy), base = Math.atan2(p.vy, p.vx);
+  for (let i = 0; i < MULTI_N; i++) {
+    const a = base + (i / (MULTI_N - 1) - .5) * MULTI_FAN * 2, v = sp * rand(.85, 1.05);
+    spawnProj(p.x, p.y, Math.cos(a) * v, Math.sin(a) * v - 30, "mini", p.owner);
+  }
+  projectiles = projectiles.filter(q => q !== p);
+  splitFx(p.x, p.y, false); shake = Math.min(18, shake + 5); screenFlash = 0.22;
+  addText(p.x, p.y - 26, "x" + MULTI_N + "!", "#ffd75e");
+  camFocus = { x: p.x, y: p.y }; sndPlop();
+}
 // Bosta Teletransporte: leva quem atirou para onde ela cair (sem cratera); acerto direto tira 10
 let teleEvt = null;
 function teleSparks(x, y, n, sp) { for (let i = 0; i < n; i++) { const a = rand(0, 7), v = rand(20, sp); particles.push({ kind: "spark", x: x + rand(-6, 6), y: y + rand(-10, 4), vx: Math.cos(a) * v, vy: Math.sin(a) * v - 30, life: rand(.5, 1.1), t: 0, size: rand(2, 4), color: Math.random() < .5 ? "#e9d8ff" : "#a678ff" }); } }
@@ -921,7 +957,7 @@ function bumerHand(g, face) { return { x: g.x + face * RK * 26, y: g.y - RK * 44
 function launchFrom(g) { return weapon === "bumer" ? bumerHand(g, g.face) : buttPoint(g, g.face, g.aim, Math.max(0.06, power)); }
 let projId = 0;
 function spawnProj(x, y, vx, vy, type, owner) {
-  projectiles.push({ id: ++projId, x, y, vx, vy, type, owner, age: 0, rot: owner ? Math.atan2(vx, -vy) : 0, spin: type === "bumer" ? (vx < 0 ? -16 : 16) : rand(-8, 8), s0: owner && type !== "bumer" ? clamp(rPoopS(Math.max(0.06, power)) * RK / WEAP[type].size, 0.2, 1) : 1 });
+  projectiles.push({ id: ++projId, x, y, vx, vy, type, owner, age: 0, rot: owner ? Math.atan2(vx, -vy) : 0, spin: type === "bumer" ? (vx < 0 ? -16 : 16) : rand(-8, 8), s0: owner && type !== "bumer" && type !== "mini" ? clamp(rPoopS(Math.max(0.06, power)) * RK / WEAP[type].size, 0.2, 1) : 1 });
 }
 let shooterTeam = null, shooterG = null, shotHit = false;
 function fire() {
@@ -1346,6 +1382,10 @@ function drawPoop(x, y, s, rot, type) {
   if (type === "grude") { ell(-5, 7, 1.4, 3.2); ell(3, 7.5, 1.2, 3.8); ell(7, 6, 1, 2.4); }
   ctx.fillStyle = w.hi || "#8f5a2e";
   ell(-3, 2.6, 3.2, 1.3); ell(-2.4, -1.8, 2.4, 1.1); ell(-1.4, -5.6, 1.5, 0.9);
+  if (type === "multi") {
+    ctx.strokeStyle = "#ffd75e"; ctx.lineWidth = 1.2; ctx.setLineDash([2, 2]); ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(6, 0); ctx.moveTo(0, -6); ctx.lineTo(0, 6); ctx.stroke(); ctx.setLineDash([]);
+    ctx.globalAlpha = .45 + .3 * Math.sin(time * 14); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, 14, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
+  }
   if (type === "tele") {
     ctx.strokeStyle = "#e9d8ff"; ctx.lineWidth = 1.1; ctx.beginPath();
     for (let i = 0; i <= 26; i++) { const a = i * .45 + time * 8, r = .3 + i * .27, px = Math.cos(a) * r * 1.3, py = Math.sin(a) * r * .6 + 1; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
@@ -1937,6 +1977,7 @@ function clientStart(m) {
 // --- comandos do jogador remoto (no anfitrião) ---
 // Na vez de um jogador remoto, o celular dele move o próprio gorila e manda a posição; o anfitrião confia nela.
 function hostOnInput(pid, m) {
+  if (m.c === "split") { const p = state === "fly" && multiShot(); if (p && p.owner && controllerOf(p.owner) === pid) { p.splitReq = true; splitMulti(p); } return; }
   if (state !== "aim" || !active || controllerOf(active) !== pid) return;
   const g = active;
   if (m.c === "pos" || m.c === "fire") {
@@ -2547,6 +2588,12 @@ function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRe
 function drawHUD() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   if (state === "menu") return;
+  if (screenFlash > 0) { ctx.globalAlpha = Math.min(.5, screenFlash * 2.2); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cw, ch); ctx.globalAlpha = 1; screenFlash = Math.max(0, screenFlash - renderDt); }
+  if (canSplit()) {
+    const txt = t(isTouch ? "tapSplit" : "keySplit"), fs = clamp(cw / 26, 15, 26);
+    ctx.save(); ctx.globalAlpha = .65 + .35 * Math.sin(time * 10); ctx.font = "900 " + fs + "px Nunito, sans-serif"; ctx.textAlign = "center";
+    ctx.lineWidth = 5; ctx.strokeStyle = "#3a1f0b"; ctx.strokeText(txt, cw / 2, ch * .3); ctx.fillStyle = "#ffd75e"; ctx.fillText(txt, cw / 2, ch * .3); ctx.restore();
+  }
   const s = cw < 640 ? clamp(cw / 500, 0.7, 1) : clamp(cw / 1000, 0.62, 1.15);
   ctx.save(); ctx.scale(s, s);
   const vw = cw / s, vh = ch / s;
@@ -2718,7 +2765,7 @@ window.addEventListener("keydown", e => {
   if (paused) return;
   if (KEYMAP[e.code]) { const was = keys[KEYMAP[e.code]]; keys[KEYMAP[e.code]] = true; e.preventDefault(); if (!was) netKeys(); }
   if (e.repeat) { if (e.code === "Space" || e.code === "Tab") e.preventDefault(); return; }
-  if (e.code === "Space") { e.preventDefault(); fireDown(); }
+  if (e.code === "Space") { e.preventDefault(); if (!trySplit()) fireDown(); }
   else if (e.code === "Enter" || e.code === "KeyJ") { e.preventDefault(); doJump(); }
   else if (e.code === "Tab" || e.code === "KeyQ") { e.preventDefault(); cycleWeapon(); }
   else if (e.code === "KeyM") toggleMute();
@@ -2736,6 +2783,7 @@ document.querySelectorAll("#touch button").forEach(b => {
   b.addEventListener("pointerdown", e => {
     e.preventDefault(); audioInit();
     try { b.setPointerCapture(e.pointerId); } catch (_) {}
+    if (trySplit()) return;
     if (k === "fire") fireDown();
     else if (k === "jump") doJump();
     else if (k === "weapon") cycleWeapon();
@@ -2749,6 +2797,7 @@ document.querySelectorAll("#touch button").forEach(b => {
 function dragMax() { return clamp(Math.min(cw, ch) * 0.32, 100, 200); }
 cv.addEventListener("pointerdown", e => {
   audioInit();
+  if (trySplit()) { e.preventDefault(); return; }
   if (!isHumanTurn() || charging) return;
   e.preventDefault();
   try { cv.setPointerCapture(e.pointerId); } catch (_) {}
@@ -3017,7 +3066,7 @@ window.gorilasT = t;
   }
   // Atualização automática: confere se há versão nova ao abrir, ao voltar para o app e a cada 10 minutos.
   // No menu, recarrega sozinho; no meio de uma partida, mostra um aviso para não interromper o jogo.
-  const BUILD = "v23";
+  const BUILD = "v24";
   let banner = null, pending = false, latest = "";
   const busy = () => { try { return window.gorilasBusy && window.gorilasBusy(); } catch (e) { return false; } };
   const tr = k => (window.gorilasT ? window.gorilasT(k) : k);
