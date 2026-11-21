@@ -23,6 +23,9 @@ if (/github\.io$/i.test(location.hostname)) location.replace("https://gorilas.pa
   html,body{margin:0;height:100%;overflow:hidden;background:#87c5e8;font-family:Nunito,system-ui,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none}
   canvas{display:block;position:fixed;inset:0;width:100%;height:100%}
   .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(30,20,10,.45);z-index:10;padding:16px}
+  #over.winMode{background:transparent;align-items:flex-end;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+  #over.winMode #overTitle,#over.winMode #overSub{display:none}
+  #over.winMode .panel{padding:10px 18px;max-width:360px}
   .hidden{display:none!important}
   .panel{background:#fff8ec;border:4px solid #5b3a1e;border-radius:22px;padding:22px 26px;max-width:520px;width:100%;box-shadow:0 10px 0 #5b3a1e,0 20px 40px rgba(0,0,0,.3);text-align:center;color:#3b2612;max-height:100%;overflow:auto}
   h1{font-family:'Luckiest Guy', Impact, 'Arial Black', sans-serif;font-size:clamp(34px,7vw,54px);margin:0 0 4px;color:#6b3e1f;letter-spacing:1px;text-shadow:3px 3px 0 #f2c14e}
@@ -305,7 +308,7 @@ const STR = {
     again: "Jogar de novo!", menu: "Menu", quitBtn: "✕ Sair", sound: "Som (M)", quitTitle: "Sair (Esc)",
     team0: "Peludos", team1: "Fedorentos",
     turn: "Vez de {n}!", time: "Tempo!", glub: "Glub glub!", stuck: "Grudado!", free: "Livre!", stuckHalf: "Grudado: metade da força!",
-    draw: "Empate fedorento!", drawSub: "Ninguém sobreviveu ao cheiro.", win: "Os {t} venceram!",
+    draw: "Empate fedorento!", drawSub: "Ninguém sobreviveu ao cheiro.", win: "Os {t} venceram!", victory: "VITÓRIA!",
     winCpu: "O computador mira melhor com bosta. Bora se vingar?", winPvp: "Reis e rainhas da selva. E da bosta.",
     wind: "VENTO", tabSwap: "Tab: trocar", kbHint: "← → andar · ↑ ↓ mirar · Espaço atirar · Enter pular",
     touchHintS: "👆 Puxe para trás e solte", touchHintL: "👆 Puxe para trás como um estilingue · solte para atirar",
@@ -323,7 +326,7 @@ const STR = {
     again: "Play again!", menu: "Menu", quitBtn: "✕ Quit", sound: "Sound (M)", quitTitle: "Quit (Esc)",
     team0: "Hairies", team1: "Stinkies",
     turn: "{n}'s turn!", time: "Time's up!", glub: "Glub glub!", stuck: "Stuck!", free: "Free!", stuckHalf: "Stuck: half power!",
-    draw: "Stinky draw!", drawSub: "Nobody survived the smell.", win: "The {t} win!",
+    draw: "Stinky draw!", drawSub: "Nobody survived the smell.", win: "The {t} win!", victory: "VICTORY!",
     winCpu: "The computer throws poop better than you. Revenge?", winPvp: "Kings and queens of the jungle. And of poop.",
     wind: "WIND", tabSwap: "Tab: switch", kbHint: "← → walk · ↑ ↓ aim · Space throw · Enter jump",
     touchHintS: "👆 Pull back and release", touchHintL: "👆 Pull back like a slingshot · release to throw",
@@ -341,7 +344,7 @@ const STR = {
     again: "Nochmal!", menu: "Menü", quitBtn: "✕ Beenden", sound: "Ton (M)", quitTitle: "Beenden (Esc)",
     team0: "Zottel", team1: "Stinker",
     turn: "{n} ist dran!", time: "Zeit um!", glub: "Blubb blubb!", stuck: "Festgeklebt!", free: "Frei!", stuckHalf: "Festgeklebt: halbe Kraft!",
-    draw: "Stinkendes Unentschieden!", drawSub: "Niemand hat den Gestank überlebt.", win: "Die {t} gewinnen!",
+    draw: "Stinkendes Unentschieden!", drawSub: "Niemand hat den Gestank überlebt.", win: "Die {t} gewinnen!", victory: "SIEG!",
     winCpu: "Der Computer wirft besser mit Kacke. Revanche?", winPvp: "Könige und Königinnen des Dschungels. Und der Kacke.",
     wind: "WIND", tabSwap: "Tab: wechseln", kbHint: "← → laufen · ↑ ↓ zielen · Leertaste werfen · Enter springen",
     touchHintS: "👆 Zurückziehen und loslassen", touchHintL: "👆 Wie eine Steinschleuder zurückziehen · loslassen zum Werfen",
@@ -1096,6 +1099,7 @@ function gameOver(team) {
   const lose = online() ? (team < 0 || team !== myTeam()) : (team < 0 || opts.mode === "pvp" || teams[team].cpu);
   document.getElementById("againBtn").classList.toggle("hidden", isClientNet());
   document.getElementById("overWait").classList.toggle("hidden", !isClientNet());
+  if (!lose && team >= 0) setTimeout(() => { if (id === matchId) startWinFx(team); }, 700);
   if (lose) setTimeout(() => {
     if (id !== matchId) return;
     const w = team >= 0 ? gorillas.find(g => g.team === team && !g.dead) : null;
@@ -1113,9 +1117,113 @@ function gameOver(team) {
       s.textContent = T.cpu ? tr("winCpu") : tr("winPvp");
     }
     document.getElementById("over").classList.remove("hidden");
-  }, lose ? 3700 : 1300);
+  }, lose ? 3700 : (team >= 0 ? 3200 : 1300));
 }
 
+// ---------- Tela de vitória: trono de bosta, batida no peito, coroa de bosta dourada e dança com fogos ----------
+let winFx = null;
+function startWinFx(team) {
+  const g = gorillas.find(o => o.team === team && !o.dead) || gorillas.find(o => o.team === team);
+  winFx = { t0: performance.now(), team, g, parts: [], rockets: [], lastFw: 0, sfx: {} };
+  document.getElementById("over").classList.add("winMode");
+}
+function stopWinFx() { winFx = null; document.getElementById("over").classList.remove("winMode"); }
+function wEll(x, y, rx, ry, r) { ctx.beginPath(); ctx.ellipse(x, y, Math.max(.1, rx), Math.max(.1, ry), r || 0, 0, 7); ctx.fill(); }
+function goldCrownPoop(x, y, s, rot) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot || 0); ctx.scale(s, s);
+  ctx.fillStyle = "#b8860b"; wEll(0, 5, 11, 5); wEll(0, -.5, 8, 4.3); wEll(0, -5, 5.3, 3.5);
+  ctx.beginPath(); ctx.moveTo(-1.5, -7.5); ctx.quadraticCurveTo(1, -13, 4.5, -10); ctx.quadraticCurveTo(1.5, -9, 2, -7); ctx.fill();
+  ctx.fillStyle = "#f2c14e"; wEll(-1, 4, 9, 3.6); wEll(-1, -1.2, 6.4, 3); wEll(-.6, -5.4, 4, 2.4);
+  ctx.fillStyle = "#fff6c8"; wEll(-4, 3, 2.6, 1); wEll(-3, -2, 1.8, .8);
+  ctx.fillStyle = "#e0a020"; for (const k of [-8, -3, 2, 7]) { ctx.beginPath(); ctx.moveTo(k - 2.4, -9.5); ctx.lineTo(k, -15.5); ctx.lineTo(k + 2.4, -9.5); ctx.fill(); }
+  ctx.fillStyle = "#e24b4a"; wEll(-3, -15.6, 1.2, 1.2); ctx.fillStyle = "#378add"; wEll(7, -15.6, 1.2, 1.2);
+  ctx.restore();
+}
+function winPose(t) {
+  const seg2 = (a, b) => clamp((t - a) / (b - a), 0, 1);
+  let P = rUpright(), jump = 0, crown = null;
+  P.bendF = 1; P.bendB = 1; P.mouth = "laugh"; P.eyes = "bliss";
+  if (t < 1.1) { const k = seg2(0, 1.1); jump = Math.sin(Math.PI * k); P.handF = [12, -40]; P.handB = [-8, -40]; P.mouth = "o"; P.eyes = undefined; if (k < .15) { P.hip = [0, -20]; P.handF = [14, -6]; P.handB = [-8, -6]; } }
+  else if (t < 1.35) { P.hip = [0, -24 + 5 * Math.sin(Math.PI * seg2(1.1, 1.35))]; }
+  else if (t < 2.9) { const b = Math.sin(t * 20); P = { hip: [0, -24], torso: .05, handF: [13 + b * 4, -33], handB: [11 - b * 4, -35], footF: [4, 0], footB: [-6, 0], mouth: "o", hr: -.25, beat: b, bendF: -1, bendB: -1 }; }
+  else if (t < 4) { P.handF = [14, -58]; P.handB = [-6, -58]; P.hr = -.5; P.mouth = "o"; P.eyes = undefined; }
+  else { const k = t - 4, sw = Math.sin(k * 6), up = sw > 0; P.hip = [sw * 3, -24 - Math.abs(sw) * 2]; P.handF = up ? [16, -60] : [17, -44]; P.handB = up ? [-6, -46] : [-8, -60]; P.rot = sw * .04; }
+  if (t >= 2.9) { const k = seg2(2.9, 3.7); crown = (1 - (1 - (1 - k) * (1 - k))) * -300 + (t > 3.7 && t < 4 ? -Math.sin((t - 3.7) / .3 * Math.PI) * 8 : 0); }
+  return { P, jump, crown };
+}
+function drawWinFx(now) {
+  const F = winFx, t = (now - F.t0) / 1000, dt = Math.min(.05, renderDt || .016), T = teams[F.team];
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const fade = clamp(t / .4, 0, 1);
+  ctx.globalAlpha = fade; ctx.fillStyle = "#1d2346"; ctx.fillRect(0, 0, cw, ch);
+  ctx.fillStyle = "#2b3366"; ctx.beginPath(); ctx.arc(cw / 2, ch + cw * .55, cw * .85, 0, 7); ctx.fill();
+  ctx.fillStyle = "#fff"; for (let i = 0; i < 50; i++) { const x = (i * 97.3) % cw, y = (i * 53.7) % (ch * .55); ctx.globalAlpha = fade * (.4 + .4 * Math.sin(time * 3 + i)); ctx.fillRect(x, y, 1.6, 1.6); }
+  ctx.globalAlpha = fade;
+  const gY = ch - clamp(ch * .45, 120, 175), titleB = ch * .2;
+  const gH = Math.min(ch * .34, cw * .28, (gY - titleB) / 1.9), K = gH / (75 * RK), thH = gH * .48, thW = gH * 1.25, cx = cw / 2;
+  const baseY = gY - thH;
+  if (t > 2.9) for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2 + time * .15; ctx.fillStyle = "rgba(242,193,78,.08)"; ctx.beginPath(); ctx.moveTo(cx, baseY - gH * .7); ctx.arc(cx, baseY - gH * .7, Math.max(cw, ch), a, a + .12); ctx.fill(); }
+  ctx.fillStyle = "#3a7d3a"; ctx.fillRect(0, gY, cw, ch - gY); ctx.fillStyle = "#5aa64a"; ctx.fillRect(0, gY, cw, 5);
+  // trono de bosta
+  const u = thH / 58;
+  const mound = (mx, my, sc, col, hi) => { ctx.fillStyle = col; wEll(mx, my + 10 * sc, 26 * sc, 12 * sc); wEll(mx, my, 20 * sc, 10 * sc); wEll(mx, my - 9 * sc, 13 * sc, 8 * sc); ctx.beginPath(); ctx.moveTo(mx - 4 * sc, my - 15 * sc); ctx.quadraticCurveTo(mx + 2 * sc, my - 26 * sc, mx + 8 * sc, my - 19 * sc); ctx.quadraticCurveTo(mx + 3 * sc, my - 17 * sc, mx + 4 * sc, my - 13 * sc); ctx.fill(); ctx.fillStyle = hi; wEll(mx - 7 * sc, my + 7 * sc, 8 * sc, 3 * sc); };
+  ctx.fillStyle = "rgba(0,0,0,.22)"; wEll(cx, gY + 4, thW * 1.05, 12 * u);
+  mound(cx - thW * .63, gY - 14 * u, 1.25 * u, "#5a3318", "#7a4a24"); mound(cx + thW * .65, gY - 14 * u, 1.25 * u, "#5a3318", "#7a4a24");
+  mound(cx - thW * .32, gY - 22 * u, 1.6 * u, "#6b3e1f", "#8f5a2e"); mound(cx + thW * .34, gY - 22 * u, 1.6 * u, "#6b3e1f", "#8f5a2e");
+  ctx.fillStyle = "#7a4a24"; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(cx - thW / 2, baseY, thW, thH, 10 * u) : ctx.rect(cx - thW / 2, baseY, thW, thH); ctx.fill();
+  ctx.fillStyle = "#6b3e1f"; for (let i = 0; i < 5; i++) wEll(cx - thW * .4 + i * thW * .2, baseY + 2 * u, thW * .12, 7 * u);
+  ctx.fillStyle = "#f2c14e"; ctx.font = "900 " + Math.round(15 * u) + "px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("Nº 1", cx, baseY + thH * .6);
+  ctx.fillStyle = "#111"; for (let i = 0; i < 4; i++) { const a = time * (4 + i) + i * 1.7; ctx.beginPath(); ctx.arc(cx + Math.cos(a) * thW * (.55 + i * .08), baseY + thH * .3 + Math.sin(a * 1.6) * 14 * u, 1.8, 0, 7); ctx.fill(); }
+  // o gorila de verdade do time vencedor
+  const W2 = winPose(t);
+  if (F.g) {
+    const fake = Object.assign({}, F.g, { x: 0, y: 0, hurtT: 0, hitT: 0, rk: RK });
+    ctx.save(); ctx.translate(cx, baseY - W2.jump * gH * .55); ctx.scale(K, K);
+    drawRig(fake, W2.P, 1);
+    if (W2.crown !== null) {
+      const P = W2.P, a = P.torso, dir = [Math.sin(a), -Math.cos(a)], chest = [P.hip[0] + dir[0] * 27, P.hip[1] + dir[1] * 27];
+      const hc = [chest[0] + dir[0] * 7, chest[1] + dir[1] * 7 - 6], hr = P.hr || 0;
+      ctx.scale(RK, RK); if (P.rot) ctx.rotate(P.rot);
+      ctx.translate(hc[0], hc[1]); ctx.rotate(hr);
+      goldCrownPoop(1, -13 + W2.crown, .95, W2.crown < -5 ? Math.sin(time * 6) * .3 : 0);
+    }
+    ctx.restore();
+  }
+  // sons nos momentos certos
+  const once = (k, at, fn) => { if (t >= at && !F.sfx[k]) { F.sfx[k] = 1; fn(); } };
+  once("land", 1.1, () => { sndThump(); shake = Math.min(18, shake + 6); });
+  once("roar", 1.4, () => sndOoh());
+  once("crown", 3.7, () => { sndPlop(); for (let i = 0; i < 24; i++) { const a = rand(0, 7), v = rand(60, 150); F.parts.push({ k: "spark", x: cx, y: baseY - gH * .95, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: .8, col: "#f2c14e" }); } });
+  if (t > 1.35 && t < 2.9) { const fs = Math.max(16, gH * .16); ctx.font = "900 " + fs + "px Nunito, sans-serif"; ctx.textAlign = "left"; ctx.lineWidth = 4; ctx.strokeStyle = "#111"; ctx.fillStyle = "#fff"; ctx.strokeText("UUH UUH!", cx + gH * .38, baseY - gH * .78); ctx.fillText("UUH UUH!", cx + gH * .38, baseY - gH * .78); }
+  // fogos e confete
+  if (t >= 4 && t - F.lastFw > .55) { F.lastFw = t; F.rockets.push({ x: cw * rand(.12, .88), y: gY, vy: -ch * rand(.95, 1.15), ty: ch * rand(.12, .38) }); }
+  if (t >= 4 && Math.random() < .6) for (let i = 0; i < 2; i++) F.parts.push({ k: Math.random() < .18 ? "poop" : "conf", x: Math.random() * cw, y: -10, vx: rand(-20, 20), vy: rand(60, 140), r: rand(0, 6), vr: rand(-4, 4), t: 0, life: 7, col: ["#f2c14e", T.color, "#fff", "#7ed957"][Math.floor(Math.random() * 4)] });
+  for (const r of F.rockets) { r.y += r.vy * dt; r.vy += ch * .15 * dt; ctx.fillStyle = "#fff6c8"; ctx.fillRect(r.x - 1.5, r.y, 3, 8); if (r.y <= r.ty) { r.dead = true;
+    const cols = ["#f2c14e", T.color, "#fff6c8", "#7ed957"], col = cols[Math.floor(Math.random() * cols.length)];
+    for (let i = 0; i < 34; i++) { const a = i / 34 * Math.PI * 2, v = rand(.16, .22) * Math.min(cw, ch); F.parts.push({ k: "spark", x: r.x, y: r.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: 1.1, col }); }
+    for (let i = 0; i < 4; i++) { const a = rand(0, 7); F.parts.push({ k: "gp", x: r.x, y: r.y, vx: Math.cos(a) * 90, vy: Math.sin(a) * 90 - 40, r: 0, vr: rand(-3, 3), t: 0, life: 1.6 }); }
+    if (Math.random() < .5) sndPlop(); } }
+  F.rockets = F.rockets.filter(r => !r.dead);
+  for (const p of F.parts) {
+    p.t += dt;
+    if (p.k === "conf" || p.k === "poop") { p.x += p.vx * dt + Math.sin(p.t * 3 + p.r) * .6; p.y += p.vy * dt; p.r += p.vr * dt; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+      if (p.k === "conf") { ctx.fillStyle = p.col; ctx.fillRect(-4, -2, 8, 4 * Math.abs(Math.cos(p.t * 6))); } else { ctx.fillStyle = "#6b3e1f"; wEll(0, 3, 5, 2.4); wEll(0, 0, 3.8, 2); wEll(0, -2.6, 2.4, 1.7); }
+      ctx.restore(); }
+    else if (p.k === "spark") { p.vx *= .97; p.vy = p.vy * .97 + 60 * dt; p.x += p.vx * dt; p.y += p.vy * dt; const f = 1 - p.t / p.life; ctx.globalAlpha = fade * Math.max(0, f); ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.x, p.y, 2.2 * f + .6, 0, 7); ctx.fill(); ctx.globalAlpha = fade; }
+    else if (p.k === "gp") { p.vy += 120 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt; ctx.globalAlpha = fade * Math.max(0, 1 - p.t / p.life); goldCrownPoop(p.x, p.y, .9, p.r); ctx.globalAlpha = fade; }
+  }
+  F.parts = F.parts.filter(p => p.t < p.life && p.y < ch + 20);
+  // título
+  const tk = clamp((t - .2) / .5, 0, 1), sk = tk * tk * (3 - 2 * tk), bounce = 1 + Math.sin(time * 4) * .04;
+  if (sk > 0) {
+    const fs = Math.min(cw / 7, ch * .12, 64);
+    ctx.save(); ctx.translate(cx, ch * .09 + fs * .3); ctx.scale(sk * bounce * (1 + (1 - sk) * .6), sk * bounce); ctx.font = "900 " + fs + "px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.lineWidth = fs * .2; ctx.lineJoin = "round"; ctx.strokeStyle = "#3a1f0b"; ctx.strokeText(tr("victory"), 0, 0); ctx.fillStyle = "#f2c14e"; ctx.fillText(tr("victory"), 0, 0); ctx.restore();
+    ctx.globalAlpha = fade * clamp((t - .6) / .4, 0, 1); ctx.font = "800 " + Math.max(15, fs * .36) + "px Nunito, sans-serif"; ctx.textAlign = "center"; ctx.lineWidth = 5; ctx.strokeStyle = "#111";
+    const s2 = tr("win", { t: tn(T) }); ctx.strokeText(s2, cx, ch * .09 + fs * 1.15); ctx.fillStyle = T.color; ctx.fillText(s2, cx, ch * .09 + fs * 1.15);
+  }
+  ctx.globalAlpha = 1;
+}
 // ---------- Bosta no ecrã (derrota) ----------
 const scv = document.getElementById("splat"), sctx = scv.getContext("2d");
 let splat = null;
@@ -1202,7 +1310,7 @@ function drawSplat(now) {
 }
 function startGame() {
   matchId++; shiny = null; balloonEvt = null; drips = [];
-  clearSplat();
+  clearSplat(); stopWinFx();
   document.getElementById("menu").classList.add("hidden");
   document.getElementById("over").classList.add("hidden");
   document.getElementById("overTitle").style.color = "";
@@ -1355,7 +1463,7 @@ function isHumanTurn() {
   return !paused && state === "aim" && active && !teams[active.team].cpu;
 }
 const quitBtn = document.getElementById("quit"), quitDlg = document.getElementById("quitDlg");
-function inMatch() { return state !== "menu" && document.getElementById("over").classList.contains("hidden"); }
+function inMatch() { return state !== "menu" && !winFx && document.getElementById("over").classList.contains("hidden"); }
 function openQuit() {
   if (!inMatch() || paused || !quitDlg.classList.contains("hidden")) return;
   if (!online()) { paused = true; charging = false; power = 0; drag = null; }
@@ -1365,7 +1473,7 @@ function openQuit() {
 function closeQuit() { paused = false; quitDlg.classList.add("hidden"); last = performance.now(); }
 function leaveMatch(fromNet) {
   if (net && !fromNet) { try { net.tx.close(); } catch (e) {} net = null; }
-  closeQuit(); clearSplat(); matchId++;
+  closeQuit(); clearSplat(); stopWinFx(); matchId++;
   state = "menu"; projectiles = []; ai = null;
   document.getElementById("over").classList.add("hidden");
   document.getElementById("menu").classList.remove("hidden");
@@ -2785,6 +2893,7 @@ function frame(now) {
   emoteUI();
   if (isTouch) touchBar.classList.toggle("hidden", !inMatch() || paused);
   render();
+  if (winFx) drawWinFx(now);
   if (splat) drawSplat(now);
   requestAnimationFrame(frame);
 }
@@ -3146,7 +3255,7 @@ window.gorilasT = t;
   }
   // Atualização automática: confere se há versão nova ao abrir, ao voltar para o app e a cada 10 minutos.
   // No menu, recarrega sozinho; no meio de uma partida, mostra um aviso para não interromper o jogo.
-  const BUILD = "v25";
+  const BUILD = "v26";
   let banner = null, pending = false, latest = "";
   const busy = () => { try { return window.gorilasBusy && window.gorilasBusy(); } catch (e) { return false; } };
   const tr = k => (window.gorilasT ? window.gorilasT(k) : k);
